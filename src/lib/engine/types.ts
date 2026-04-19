@@ -80,7 +80,7 @@ export interface ISentimentSystem {
 
 export interface IContractSystem {
   getState(): { contracts: Contract[] }
-  tick(contracts: Contract[], packetsAvailable: number): void
+  tick(packetsAvailable: number): void
   generateNewContracts(difficulty: 'safe' | 'hard'): Contract[]
 }
 

@@ -13,7 +13,7 @@ export class ContractSystem implements IContractSystem {
     }
   }
 
-  tick(contracts: Contract[], packetsAvailable: number): void {
+  tick(packetsAvailable: number): void {
     let remainingPackets = packetsAvailable
 
     for (let i = 0; i < this.contracts.length; i++) {
@@ -40,9 +40,10 @@ export class ContractSystem implements IContractSystem {
   generateNewContracts(difficulty: 'safe' | 'hard'): Contract[] {
     const now = Date.now()
     const contracts: Contract[] = []
+    const count = Math.random() < 0.5 ? 2 : 3
 
     if (difficulty === 'safe') {
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < count; i++) {
         contracts.push({
           id: `contract-${now}-${i}`,
           targetVolume: 10000,
@@ -55,7 +56,7 @@ export class ContractSystem implements IContractSystem {
         })
       }
     } else {
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < count; i++) {
         contracts.push({
           id: `contract-${now}-${i}`,
           targetVolume: 10000,

@@ -49,9 +49,10 @@ describe('ContractSystem', () => {
   })
 
   describe('generateNewContracts', () => {
-    it('should generate 2 safe contracts with correct parameters', () => {
+    it('should generate 2-3 safe contracts with correct parameters', () => {
       const contracts = contractSystem.generateNewContracts('safe')
-      expect(contracts).toHaveLength(2)
+      expect(contracts.length).toBeGreaterThanOrEqual(2)
+      expect(contracts.length).toBeLessThanOrEqual(3)
       contracts.forEach((contract) => {
         expect(contract.targetVolume).toBe(10000)
         expect(contract.currentVolume).toBe(0)
@@ -75,9 +76,10 @@ describe('ContractSystem', () => {
       })
     })
 
-    it('should generate 2 hard contracts with correct parameters', () => {
+    it('should generate 2-3 hard contracts with correct parameters', () => {
       const contracts = contractSystem.generateNewContracts('hard')
-      expect(contracts).toHaveLength(2)
+      expect(contracts.length).toBeGreaterThanOrEqual(2)
+      expect(contracts.length).toBeLessThanOrEqual(3)
       contracts.forEach((contract) => {
         expect(contract.targetVolume).toBe(10000)
         expect(contract.currentVolume).toBe(0)
@@ -137,7 +139,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 1000)
+      system.tick(1000)
 
       const state = system.getState()
       expect(state.contracts[0].currentVolume).toBe(1000)
@@ -158,7 +160,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 500)
+      system.tick(500)
 
       const state = system.getState()
       expect(state.contracts[0].currentVolume).toBe(500)
@@ -179,7 +181,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 1000)
+      system.tick(1000)
 
       const state = system.getState()
       expect(state.contracts[0].currentVolume).toBe(1000)
@@ -210,7 +212,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 2000)
+      system.tick(2000)
 
       const state = system.getState()
       const totalRouted = state.contracts.reduce((sum, c) => sum + c.currentVolume, 0)
@@ -232,7 +234,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 1000)
+      system.tick(1000)
 
       const state = system.getState()
       expect(state.contracts[0].currentVolume).toBe(0)
@@ -256,7 +258,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 0)
+      system.tick(0)
 
       const state = system.getState()
       expect(state.contracts[0].status).toBe('completed')
@@ -278,7 +280,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 0)
+      system.tick(0)
 
       const state = system.getState()
       expect(state.contracts[0].status).toBe('failed')
@@ -300,11 +302,11 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 0)
+      system.tick(0)
       const stateAfterFirst = system.getState()
       const volumeAfterFirst = stateAfterFirst.contracts[0].currentVolume
 
-      system.tick(contracts, 1000)
+      system.tick(1000)
       const stateAfterSecond = system.getState()
 
       expect(stateAfterSecond.contracts[0].currentVolume).toBe(volumeAfterFirst)
@@ -326,11 +328,11 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 0)
+      system.tick(0)
       const stateAfterFirst = system.getState()
       const volumeAfterFirst = stateAfterFirst.contracts[0].currentVolume
 
-      system.tick(contracts, 1000)
+      system.tick(1000)
       const stateAfterSecond = system.getState()
 
       expect(stateAfterSecond.contracts[0].currentVolume).toBe(volumeAfterFirst)
@@ -352,7 +354,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      expect(() => system.tick(contracts, 0)).not.toThrow()
+      expect(() => system.tick(0)).not.toThrow()
       const state = system.getState()
       expect(state.contracts[0].status).toBe('completed')
     })
@@ -395,7 +397,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 2000)
+      system.tick(2000)
 
       const state = system.getState()
       expect(state.contracts[0].status).toBe('completed')
@@ -429,7 +431,7 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
-      system.tick(contracts, 8000)
+      system.tick(8000)
 
       const state = system.getState()
       const totalVolume = state.contracts.reduce((sum, c) => sum + c.currentVolume, 0)
