@@ -37,6 +37,7 @@ export class UpgradeSystem implements IUpgradeSystem {
 
     node.throughput += totalThroughputModifier
     node.efficiency += totalEfficiencyModifier
+    node.cooling += totalCoolingModifier
 
     if (node.efficiency > 1.0) {
       node.efficiency = 1.0
