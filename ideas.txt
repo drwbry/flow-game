@@ -1,0 +1,103 @@
+This plan outlines the development of Terminal Flow, a logic-driven logistics idler designed for "vibe coding" (LLM-assisted development) using a minimalist, UI-based terminal aesthetic.
+
+1. Technical Specification
+Tech Stack (Vibe Coding Optimized)
+Framework: React (Next.js) or Vue 3. High compatibility with LLMs for component generation.
+
+Styling: Tailwind CSS. Allows for rapid "Terminal" styling (neon glows, scan lines) without custom CSS files.
+
+State Management: Zustand (lightweight) or Redux Toolkit. Critical for handling complex data flows across nodes.
+
+Animations: Framer Motion. Ideal for "glitch" effects and smooth data pulses.
+
+Persistence: LocalStorage or IndexedDB (for mobile browser/PWA) for idle progression.
+
+Core Data Models
+JSON
+{
+  "node": {
+    "id": "string",
+    "status": "online | offline | critical",
+    "throughput": "number (packets/sec)",
+    "heat": "number (0-100)",
+    "efficiency": "number (0.0-1.0)",
+    "upgrades": ["id1", "id2"]
+  },
+  "contract": {
+    "id": "string",
+    "targetVolume": "number",
+    "currentVolume": "number",
+    "deadline": "timestamp",
+    "reward": "number",
+    "penalty": "number"
+  }
+}
+2. The Gameplay Loop
+The "Pulse" (Tick Rate: 1s)
+Generation: Every active Link generates "Packets" based on current Node throughput.
+
+Heat Calculation: ΔH=(T×K)−C, where T is throughput, K is a constant, and C is cooling capacity.
+
+Revenue: Packets processed × current Market Value = Credits.
+
+High-Stakes Mechanics
+SLA Failure: If currentVolume < targetVolume at deadline, credits = credits - penalty.
+
+Node Meltdown: If heat > 100, Node goes offline for 60 seconds. Idle revenue stops.
+
+3. Implementation Phases
+Phase 1: The Minimum Viable Product (MVP)
+Objective: Create a single-node terminal that generates revenue and heat.
+
+Core UI: A dark screen with a central glowing circle (The Node) and a ticker showing incoming data.
+
+Active Element: A "Manual Cool" button that reduces heat on click.
+
+Progression: Buying "Node Upgrades" to increase capacity.
+
+Phase 2: System Complexity
+Objective: Introduce "The Weight."
+
+Multi-Node View: A list or simple 2D map of 3 nodes.
+
+The Contract System: Randomly generated SLAs that pop up as "Incoming Calls."
+
+Resource Scarcity: A global "Power Limit" that prevents all nodes from running at 100% simultaneously.
+
+Phase 3: The Automation Layer (The "Shiny" progression)
+Objective: Shift player role from "Operator" to "Architect."
+
+Logic Gate Unlocks: Add a "Scripting" tab where players can toggle logic like:
+
+Auto-SLA: Priority routing to the node with the closest deadline.
+
+Heat-Sync: Automatically throttle Node A if Node B exceeds 80% heat.
+
+Visual Evolution: Transition from text-based lists to a vector-style "Global Map."
+
+Phase 4: Prestige & Scaling
+Objective: Long-term retention.
+
+The "System Reset": Ability to "Archive" the network for "Quantum Insights."
+
+Meta-Upgrades: Spending insights on permanent logic modules (e.g., "AI Cooling Core" that never fails).
+
+4. "Vibe Coding" Development Prompts
+To build this using an LLM, use these specific instructional blocks:
+
+Prompt 1 (Visuals): "Generate a React component using Tailwind CSS that looks like a 1980s computer terminal. It should have a scan-line overlay effect, use a monospaced green font, and feature a central dashboard with three glowing health bars representing 'Throughput', 'Heat', and 'Stability'."
+
+Prompt 2 (Logic): "Write a custom React hook useLogisticsEngine that handles a game tick every 1000ms. It must calculate packet flow between nodes, increase heat based on volume, and check if any active contracts (SLAs) have expired or been fulfilled."
+
+Prompt 3 (Stress): "Create a 'Glitch' animation using Framer Motion. When a variable systemStability falls below 20, the entire UI should jitter, colors should occasionally invert, and text should briefly swap to random characters to simulate system failure."
+
+5. Success Metrics for "Challenge"
+The game is balanced correctly if:
+
+Cognitive Load: The player cannot manage 5+ nodes manually without utilizing the "Automation Logic."
+
+Risk/Reward: The "Express Contract" reward is high enough to tempt the player into "Overclocking" a node to the point of a 50% failure risk.
+
+Idle Satisfaction: Coming back after 4 hours shows that your logic/scripts successfully handled a market crash while you were away.
+
+Would you like the first "Vibe Coding" prompt for the Node Dashboard component to get started?
