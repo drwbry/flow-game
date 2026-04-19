@@ -60,9 +60,9 @@ export interface INodeManager {
 }
 
 export interface IEconomy {
-  getState(): { player: PlayerState }
-  addCredits(amount: number): void
-  subtractCredits(amount: number): void
+  getState(): { credits: number }
+  settleRevenue(packets: number): void
+  applyPenalty(amount: number): void
 }
 
 export interface IUpgradeSystem {
