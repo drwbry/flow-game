@@ -1,0 +1,130 @@
+<h2>Terminal Flow — System Architecture</h2>
+<p class="subtitle">6 core modules orchestrated by GameEngine. How should we decompose this into implementation phases?</p>
+
+<div class="mockup">
+  <div class="mockup-header">Module Dependency Graph</div>
+  <div class="mockup-body" style="font-family: monospace; padding: 20px; background: #0a0a0a; color: #00ff00; font-size: 13px; line-height: 1.8;">
+    <div style="margin-bottom: 20px;">
+      <div style="color: #ffaa00; font-weight: bold;">┌─────────────────────┐</div>
+      <div style="color: #ffaa00; font-weight: bold;">│   GAMEENGINE (tick)  │</div>
+      <div style="color: #ffaa00; font-weight: bold;">│  [1-second pulse]   │</div>
+      <div style="color: #ffaa00; font-weight: bold;">└──────────┬──────────┘</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+      <div>
+        <div style="color: #00ff00; font-weight: bold;">▸ NODEMANAGER</div>
+        <div style="color: #888; margin-left: 10px; font-size: 12px;">
+          • Heat generation<br/>
+          • Meltdown detection<br/>
+          • Node state
+        </div>
+      </div>
+      <div>
+        <div style="color: #00ff00; font-weight: bold;">▸ CONTRACTSYSTEM</div>
+        <div style="color: #888; margin-left: 10px; font-size: 12px;">
+          • SLA management<br/>
+          • Deadline enforcement<br/>
+          • Routing packets
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+      <div>
+        <div style="color: #00ff00; font-weight: bold;">▸ SENTIMENTSYSTEM</div>
+        <div style="color: #888; margin-left: 10px; font-size: 12px;">
+          • Reputation (0–100)<br/>
+          • Contract difficulty gate<br/>
+          • Streak tracking
+        </div>
+      </div>
+      <div>
+        <div style="color: #00ff00; font-weight: bold;">▸ UPGRADESYSTEM</div>
+        <div style="color: #888; margin-left: 10px; font-size: 12px;">
+          • Purchase tracking<br/>
+          • Node stat modifiers<br/>
+          • Cost calculation
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+      <div>
+        <div style="color: #00ff00; font-weight: bold;">▸ ECONOMY</div>
+        <div style="color: #888; margin-left: 10px; font-size: 12px;">
+          • Credit tracking<br/>
+          • Revenue calculation<br/>
+          • Transaction history
+        </div>
+      </div>
+      <div>
+        <div style="color: #00ff00; font-weight: bold;">▸ UI LAYER</div>
+        <div style="color: #888; margin-left: 10px; font-size: 12px;">
+          • Phase 1: single node<br/>
+          • Phase 2: multi-node<br/>
+          • Dashboard + shop
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #444;">
+      <div style="color: #00ff00; font-weight: bold;">Supporting Systems</div>
+      <div style="color: #888; margin-left: 10px; font-size: 12px; margin-top: 8px;">
+        • Persistence (IndexedDB)<br/>
+        • Offline catch-up<br/>
+        • Mobile wrapper (Capacitor)
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top: 30px;">Decomposition Question:</h3>
+<p>The game has natural layers: <strong>core logic</strong> (modules 1–6) and <strong>UI</strong> (Phase 1 then Phase 2). We also need <strong>persistence + mobile</strong>. How should we sequence this?</p>
+
+<div class="options">
+  <div class="option" data-choice="approach-a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Core First (TDD), Then UI Layers</h3>
+      <p><strong>1. Core modules (all 6)</strong> with unit tests<br/>
+      <strong>2. GameEngine + integration tests</strong><br/>
+      <strong>3. Phase 1 UI</strong> (single node)<br/>
+      <strong>4. Phase 2 UI</strong> (multi-node)<br/>
+      <strong>5. Persistence + Capacitor</strong><br/><br/>
+      <em>Pros: Game logic is bulletproof before UI. Can iterate UI without touching core.</em><br/>
+      <em>Cons: Long time before first playable moment.</em></p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="approach-b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Vertical Slice to Playable, Then Scale Up</h3>
+      <p><strong>1. NodeManager + ContractSystem</strong> (minimal)<br/>
+      <strong>2. SentimentSystem + Economy</strong><br/>
+      <strong>3. GameEngine with tick loop</strong><br/>
+      <strong>4. Phase 1 UI</strong> (playable MVP)<br/>
+      <strong>5. UpgradeSystem + shop UI</strong><br/>
+      <strong>6. Phase 2 multi-node + UI</strong><br/>
+      <strong>7. Persistence</strong><br/><br/>
+      <em>Pros: Play the game early, iterate based on feel.</em><br/>
+      <em>Cons: May refactor core as Phase 2 reveals issues.</em></p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="approach-c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Phase 1 Complete, Then Phase 2 (Waterfall)</h3>
+      <p><strong>1. Phase 1 Core</strong> (NodeManager, ContractSystem, Sentiment, Economy)<br/>
+      <strong>2. Phase 1 UI</strong> (single node, manual cool, basic upgrades)<br/>
+      <strong>3. Persistence for Phase 1</strong><br/>
+      <strong>4. Phase 2 expansion</strong> (multi-node logic)<br/>
+      <strong>5. Phase 2 UI</strong> (node selector, power allocator)<br/>
+      <strong>6. Full persistence + Capacitor</strong><br/><br/>
+      <em>Pros: Ship a complete game after step 3, add depth incrementally.</em><br/>
+      <em>Cons: Rework potential if Phase 1 and Phase 2 designs conflict.</em></p>
+    </div>
+  </div>
+</div>
