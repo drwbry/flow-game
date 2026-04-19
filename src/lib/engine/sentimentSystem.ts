@@ -22,14 +22,7 @@ export class SentimentSystem implements ISentimentSystem {
 
   recordSuccess(): void {
     this.consecutiveSuccesses += 1
-    let streakBonus = 0
-    if (this.consecutiveSuccesses === 1) {
-      streakBonus = 0
-    } else if (this.consecutiveSuccesses <= 3) {
-      streakBonus = 1
-    } else {
-      streakBonus = 3
-    }
+    const streakBonus = Math.min(this.consecutiveSuccesses, 3)
     const sentimentGain = 5 + streakBonus
     this.sentiment += sentimentGain
     if (this.sentiment > 100) {
@@ -48,7 +41,7 @@ export class SentimentSystem implements ISentimentSystem {
   getContractDifficultyWeights(): { safe: number; hard: number } {
     if (this.sentiment <= 30) {
       return { safe: 0.8, hard: 0.2 }
-    } else if (this.sentiment <= 70) {
+    } else if (this.sentiment < 70) {
       return { safe: 0.5, hard: 0.5 }
     } else {
       return { safe: 0.2, hard: 0.8 }
