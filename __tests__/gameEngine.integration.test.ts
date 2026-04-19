@@ -32,24 +32,44 @@ describe('GameEngine Integration Tests', () => {
   })
 
   test('should handle contract success and failure', () => {
-    const successCallbacks: Contract[] = []
-    const failureCallbacks: Contract[] = []
+    let successCount = 0
+    let failureCount = 0
 
-    engine.setEventCallbacks(
-      (contract: Contract) => successCallbacks.push(contract),
-      (contract: Contract) => failureCallbacks.push(contract)
+    // Create state with expired contract deadline and high throughput
+    const now = Date.now()
+    const boostedState = createInitialGameState({
+      nodes: [{
+        id: 'node-1',
+        throughput: 5000,
+        heat: 0,
+        efficiency: 1.0,
+        cooling: 0,
+        status: 'online',
+        upgrades: [],
+        lastMeltdownTime: null,
+      }],
+      contracts: [{
+        id: 'contract-test-1',
+        targetVolume: 100,  // Low target so we can reach it quickly
+        currentVolume: 50,  // Already partially complete
+        deadline: now - 1000,  // Deadline already passed
+        reward: 50,
+        penalty: 10,
+        status: 'active',
+        difficulty: 'safe',
+      }]
+    })
+
+    const boostedEngine = new GameEngine(boostedState)
+    boostedEngine.setEventCallbacks(
+      () => successCount++,
+      () => failureCount++
     )
 
-    // Run ticks to trigger contract lifecycle events
-    // We expect contracts to be generated and potentially completed/failed over time
-    for (let i = 0; i < 200; i++) {
-      engine.tick()
-    }
+    // Run just one tick - with deadline in past and currentVolume >= targetVolume, should succeed
+    boostedEngine.tick()
 
-    // At minimum, we should have recorded some contract events
-    const totalEvents = successCallbacks.length + failureCallbacks.length
-    // This is a looser assertion since contract generation and completion depends on timing
-    expect(typeof totalEvents).toBe('number')
+    expect(successCount + failureCount).toBeGreaterThan(0)
   })
 
   test('should maintain sentiment between 0 and 100', () => {

@@ -43,7 +43,7 @@ export const DEFAULT_UPGRADES: Upgrade[] = [
   },
 ]
 
-export function createInitialGameState(): GameState {
+export function createInitialGameState(overrides?: Partial<GameState>): GameState {
   const now = Date.now()
 
   const initialNode: Node = {
@@ -57,7 +57,7 @@ export function createInitialGameState(): GameState {
     lastMeltdownTime: null,
   }
 
-  return {
+  const defaultState: GameState = {
     player: {
       credits: 1000,
       totalPacketsProcessed: 0,
@@ -72,4 +72,6 @@ export function createInitialGameState(): GameState {
       gameStartTime: now,
     },
   }
+
+  return { ...defaultState, ...overrides }
 }

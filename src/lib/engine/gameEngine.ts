@@ -44,7 +44,10 @@ export class GameEngine implements IGameEngine {
       nodes: nodeState.nodes,
       contracts: contractState.contracts,
       upgrades: upgradeState.upgrades,
-      metadata: this.state.metadata,
+      metadata: {
+        lastTickTime: Date.now(),
+        gameStartTime: this.state.metadata.gameStartTime,
+      },
     }
   }
 
