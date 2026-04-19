@@ -17,10 +17,12 @@ Terminal Flow is a casual "check-in" idle logistics game with a 1980s terminal a
 
 ## Design Principles
 
-1. **Modular architecture** — Each game system (nodes, contracts, economy, upgrades) is independent and testable, enabling balance tuning and Phase 3 extensibility.
+1. **Modular architecture** — Each game system (nodes, contracts, economy, upgrades, sentiment) is independent and testable, enabling balance tuning and Phase 3 extensibility.
 2. **Check-in gameplay** — Short sessions with offline progression; meaningful decisions available in 5 minutes, but depth available for longer exploration.
-3. **Minimal narrative** — Flavor text provides world context and immersion, but gameplay is mechanical, not story-driven.
-4. **Non-pay-to-win monetization** — Cosmetic skins and optional developer donate; no mechanics locked behind payment.
+3. **Playstyle flexibility** — Idle players choose safe contracts and progress slowly; engaged players chase hard contracts with tight deadlines, requiring active heat/power management.
+4. **Sentiment-driven tension** — Contract difficulty and availability is gated by reputation; failure is significant enough to reset progression, creating Frostpunk-like decision weight without frustration.
+5. **Minimal narrative** — Flavor text provides world context and immersion, but gameplay is mechanical, not story-driven.
+6. **Non-pay-to-win monetization** — Cosmetic skins and optional developer donate; no mechanics locked behind payment.
 
 ---
 
@@ -41,9 +43,12 @@ The game consists of 5 modules orchestrated by a central GameEngine:
 - Node meltdown: heat > 100 → offline for 60 seconds, stops revenue generation
 
 ### 3. ContractSystem
-- Manages active SLAs: `{ id, targetVolume, currentVolume, deadline, reward, penalty }`
+- Manages active SLAs and contract generation
+- Active contract state: `{ id, targetVolume, currentVolume, deadline, reward, penalty, difficulty }`
 - Each tick: routes completed packets to nearest deadline contracts first
-- On deadline: if currentVolume ≥ targetVolume, award credits; otherwise, apply penalty
+- On deadline: if currentVolume ≥ targetVolume, award credits + sentiment boost; otherwise, apply penalty + sentiment hit
+- Contract difficulty (safe/hard) is weighted by player sentiment: higher sentiment increases odds of hard contracts appearing
+- Hard contracts have tight deadlines and high volume (require active play); safe contracts are lenient (idle-friendly)
 - Phase 2: adds power allocation constraints (global power limit prevents all nodes at 100%)
 
 ### 4. UpgradeSystem
@@ -56,6 +61,13 @@ The game consists of 5 modules orchestrated by a central GameEngine:
 - Calculates revenue: packets processed × market value per packet
 - Maintains transaction history for debugging/analytics
 
+### 6. SentimentSystem
+- Tracks player reputation: `sentiment` (0–100)
+- Contract success: +5 sentiment, plus streak bonus (+1 per consecutive success)
+- Contract failure: -15 sentiment (significant penalty, creates recovery arc)
+- Weights contract generation: higher sentiment increases probability of hard contracts appearing in the available contract pool
+- Hard contracts offer higher rewards but require active play (tight deadlines, high volume)
+
 ---
 
 ## Data Model
@@ -66,6 +78,8 @@ The game consists of 5 modules orchestrated by a central GameEngine:
   player: {
     credits: number,
     totalPacketsProcessed: number,
+    sentiment: number (0–100),
+    consecutiveSuccesses: number, // streak counter
   },
   nodes: [
     {
@@ -119,45 +133,109 @@ Every 1 second:
 2. **ContractSystem.tick()** — For each active contract:
    - Route completed packets (consume from pool)
    - Reduce contract.currentVolume
-   - Check for deadline expiry
+   - Check for deadline expiry:
+     - Success: award credits, increment consecutiveSuccesses, add to SentimentSystem
+     - Failure: apply penalty, reset consecutiveSuccesses, subtract from SentimentSystem
 
-3. **Economy.settle()** — Calculate credits earned from completed packets
+3. **SentimentSystem.update()** — Process sentiment changes from contract results
 
-4. **UI.update()** — Re-render dashboard with new values
+4. **ContractSystem.generate()** — If contracts expired, generate 2–3 new ones weighted by sentiment
+
+5. **Economy.settle()** — Calculate credits earned from completed packets
+
+6. **UI.update()** — Re-render dashboard with new values
 
 ---
 
 ## Phase 1: Single Node MVP
 
-**Goal:** Prove core loop and engagement
+**Goal:** Prove core loop, sentiment system, and playstyle flexibility
 
 **Features:**
 - One node, glowing in center of screen
 - Three health bars: Throughput (green), Heat (amber), Stability (yellow)
-- Credits ticker at top
+- Sentiment meter (0–100) displayed prominently
+- Credits ticker and consecutive success counter
 - Manual "Cool" button (reduces heat by fixed amount, 5-second cooldown)
+- Contract pool: 2–3 available contracts at a time, difficulty weighted by sentiment
+  - Safe contracts: 100 packets / 120 second deadline, 50 credit reward (idle-friendly)
+  - Hard contracts: 100 packets / 40 second deadline, 200 credit reward (requires manual cooling to sustain throughput)
 - Upgrade shop: purchasable node upgrades (throughput +10%, efficiency boost, cooling improvement)
-- First contract appears automatically to establish SLA concept
 
-**Success condition:** Player understands the heat/throughput tradeoff and feels compelled to upgrade
+**Player progression:**
+- New players start with all safe contracts (high success rate)
+- Completing contracts → +sentiment, access to harder contracts with better rewards
+- Failing a contract → -15 sentiment, back to mostly safe contracts (recovery arc)
+- Engaged players push for hard contracts early, managing heat tightly
+- Idle players accept the slower safe-contract grind
+
+**Success condition:** Both playstyles work; players understand sentiment gates difficulty and rewards
 
 ---
 
 ## Phase 2: Multi-Node & Contracts
 
-**Goal:** Add complexity and strategic depth
+**Goal:** Add complexity and strategic depth; compound sentiment system with resource management
 
 **Features:**
 - 3 nodes visible in sidebar, selectable
 - Each node has independent throughput/heat/upgrades
+- Sentiment system persists and now gates harder contracts that span multiple nodes
+- Contract generation: 2–3 active SLAs at a time, with varied deadlines and rewards
+  - Hard contracts now require smart node allocation (power management) to meet tight deadlines
 - Global power limit: total throughput across all nodes capped at a threshold
   - Forces tradeoff: scale up node A or B, not both at max
   - Shows power allocation slider (redistribute power budget)
-- Contract generation: 2–3 active SLAs at a time, with varied deadlines and rewards
-- Contract UI: shows target vs. current volume, deadline countdown
-- Phase 1 manual cool button persists (quality of life)
+- Contract UI: shows target vs. current volume, deadline countdown, which node(s) are handling it
+- Phase 1 manual cool button persists per-node (quality of life)
 
-**Success condition:** Player juggles multiple nodes, makes routing/priority decisions, experiences meaningful challenge from power limits
+**Gameplay consequence of sentiment:**
+- High sentiment → harder multi-node contracts → requires balancing power between nodes + cooling management
+- Low sentiment → safe contracts → easier to complete passively
+- Failure on a multi-node contract is more costly (harder recovery), creates Frostpunk-like decision weight
+
+**Success condition:** Player juggles multiple nodes, makes routing/priority decisions, experiences meaningful challenge from power limits + sentiment recovery arc
+
+---
+
+## The Sentiment System: Core Engagement Mechanic
+
+**Problem:** Heat alone doesn't create enough decision tension to drive engagement and the 20% 7-day retention target.
+
+**Solution:** Sentiment (reputation) gates contract difficulty, creating a playstyle-flexible engagement loop:
+
+### How It Works
+
+1. **Contract Pool Generation** — When a contract expires, 2–3 new ones are generated. Each contract's difficulty is randomly weighted based on current sentiment:
+   - Sentiment 0–30: mostly safe (60%+ success, low reward)
+   - Sentiment 70–100: premium hard contracts appear (60% success *if actively managed*, high reward)
+
+2. **Safe vs. Hard Trade-off**
+   - **Safe contracts:** 100 packets / 120 seconds / 50 credits
+     - Idle-friendly; can mostly auto-complete
+     - Good for low-sentiment recovery
+   
+   - **Hard contracts:** 100 packets / 40 seconds / 200 credits
+     - Require tight heat management (Phase 1) or power balancing (Phase 2)
+     - Access gated by sentiment
+     - Higher reward justifies the engagement
+
+3. **Success/Failure Consequences**
+   - **Success:** +5 sentiment, +1 per consecutive success (compounding up to streak bonus)
+     - Unlocks access to premium contracts
+     - Reinforces skill: "I did well, now I get better challenges"
+   
+   - **Failure:** -15 sentiment (significant)
+     - Locks player back into safe contracts
+     - Creates recovery arc: need ~3 successful contracts to get back to high sentiment
+     - This friction is *intentional* — it creates Frostpunk-like decision weight: "Is this hard contract worth the risk?"
+
+### Design Goals
+
+- **Idle players** can stick with safe contracts, progress slowly but safely
+- **Engaged players** chase hard contracts, get rewarded with better credits/challenges, but one failure stings
+- **Decision tension:** Every contract choice matters. Fail and you're grinding safe contracts to recover
+- **Streak satisfaction:** Building a win streak unlocks better contracts and compounds rewards
 
 ---
 
@@ -253,10 +331,27 @@ This creates the "check-in satisfaction" moment: players see passive progress ma
 
 These tuning parameters will be adjusted post-launch based on 7-day retention data:
 
-- **Heat generation rate (K):** Adjust to make manual cooling feel impactful
+- **Sentiment changes:** 
+  - Success: +5 base, +1 per consecutive success (can reach +8 on 3-streak)
+  - Failure: -15 (creates meaningful recovery arc; ~3 successful contracts to recover)
+  - Adjust if recovery feels too fast (players always high sentiment) or too slow (frustrating)
+  
+- **Contract difficulty distribution:**
+  - Sentiment 0–30: 80% safe, 20% hard
+  - Sentiment 30–70: 50% safe, 50% hard
+  - Sentiment 70–100: 20% safe, 80% hard
+  - Adjust if engagement players feel blocked or if idle players feel pushed too hard
+
+- **Heat generation rate (K):** Adjust to make manual cooling feel impactful on hard contracts
+
+- **Contract deadlines:**
+  - Safe: 120 seconds for 100 packets (leisurely 50 pps)
+  - Hard: 40 seconds for 100 packets (requires ~250 pps throughput, forces active cooling)
+
 - **Upgrade costs:** Scale to maintain 10–20 minute progression to Phase 2 complexity
-- **Contract rewards:** Set to create "express vs. safe" tradeoff
-- **Power limit:** Should force genuine strategic choices by ~3 active contracts
+
+- **Power limit:** Should force genuine strategic choices by ~3 active contracts in Phase 2
+
 - **Meltdown duration:** 60 seconds; adjust if too punishing or too lenient
 
 ---
