@@ -66,10 +66,11 @@ describe('GameEngine Integration Tests', () => {
       () => failureCount++
     )
 
-    // Run just one tick - with deadline in past and currentVolume >= targetVolume, should succeed
+    // Run just one tick - with deadline in past and currentVolume < targetVolume, should fail
     boostedEngine.tick()
 
-    expect(successCount + failureCount).toBeGreaterThan(0)
+    expect(failureCount).toBe(1)
+    expect(successCount).toBe(0)
   })
 
   test('should maintain sentiment between 0 and 100', () => {
@@ -104,10 +105,10 @@ describe('GameEngine Integration Tests', () => {
 
     const heatedNode = heatedEngine.getState().nodes[0]
 
-    // At heat 90, effective throughput should be throttled
-    // Effective throughput = base * (1 - heat/100) = 200 * (1 - 0.9) = 20
-    // But capped at minimum of 100, so still 100
-    // However, let's verify that higher heat reduces generation
+    // Heat throttling: effective_throughput = max(base_throughput * (1 - heat/100), 100)
+    // coolEngine: heat=0, throughput = 200 * (1 - 0/100) = 200 packets
+    // heatedEngine: heat=90, throughput = max(200 * (1 - 90/100), 100) = max(20, 100) = 100 packets
+    // Verify cooler engine processes more packets than heated engine
 
     // Run a tick to see effect
     coolEngine.tick()
@@ -117,8 +118,8 @@ describe('GameEngine Integration Tests', () => {
     const heatedState2 = heatedEngine.getState()
 
     // The cool engine should have processed more total packets than the heated one
-    expect(coolState2.player.totalPacketsProcessed).toBeGreaterThan(
-      heatedState2.player.totalPacketsProcessed
-    )
+    const coolPackets = coolState2.player.totalPacketsProcessed
+    const heatedPackets = heatedState2.player.totalPacketsProcessed
+    expect(coolPackets).toBeGreaterThan(heatedPackets)
   })
 })

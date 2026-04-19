@@ -73,5 +73,12 @@ export function createInitialGameState(overrides?: Partial<GameState>): GameStat
     },
   }
 
-  return { ...defaultState, ...overrides }
+  if (!overrides) return defaultState
+
+  return {
+    ...defaultState,
+    ...overrides,
+    player: { ...defaultState.player, ...overrides.player },
+    metadata: { ...defaultState.metadata, ...overrides.metadata },
+  }
 }

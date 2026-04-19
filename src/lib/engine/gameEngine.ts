@@ -80,17 +80,21 @@ export class GameEngine implements IGameEngine {
     this.contractSystem.tick(totalPackets)
     const contractsAfter = this.contractSystem.getState().contracts
 
-    // Step 4: Detect contract status changes and handle success/failure
+    // Step 4: Process contract events (success/failure) for contracts that existed before tick
+    // Note: Contract events are detected for contracts that existed before this tick.
+    // Newly generated contracts (added at the end of this tick) will fire events on the next tick.
     for (let i = 0; i < contractsBefore.length; i++) {
       const before = contractsBefore[i]
-      const after = contractsAfter[i]
+      const after = contractsAfter.find(c => c.id === before.id)
+
+      if (!after) continue // Contract was removed (shouldn't happen, but defensive)
 
       // Detect completion
       if (before.status === 'active' && after.status === 'completed') {
         this.economy.settleRevenue(after.reward)
         this.sentimentSystem.recordSuccess()
         if (this.onContractSuccess) {
-          this.onContractSuccess(after)
+          this.onContractSuccess({ ...after })
         }
       }
 
@@ -99,7 +103,7 @@ export class GameEngine implements IGameEngine {
         this.economy.applyPenalty(after.penalty)
         this.sentimentSystem.recordFailure()
         if (this.onContractFailure) {
-          this.onContractFailure(after)
+          this.onContractFailure({ ...after })
         }
       }
     }
