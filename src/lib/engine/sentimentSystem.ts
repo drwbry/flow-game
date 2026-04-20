@@ -1,4 +1,4 @@
-import { ISentimentSystem, PlayerState } from './types'
+import { ISentimentSystem } from './types'
 
 export class SentimentSystem implements ISentimentSystem {
   private sentiment: number
@@ -11,12 +11,8 @@ export class SentimentSystem implements ISentimentSystem {
 
   getState() {
     return {
-      player: {
-        credits: 0,
-        totalPacketsProcessed: 0,
-        sentiment: this.sentiment,
-        consecutiveSuccesses: this.consecutiveSuccesses,
-      } as PlayerState,
+      sentiment: this.sentiment,
+      consecutiveSuccesses: this.consecutiveSuccesses,
     }
   }
 

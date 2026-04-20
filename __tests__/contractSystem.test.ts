@@ -397,11 +397,16 @@ describe('ContractSystem', () => {
       ]
       const system = new ContractSystem(contracts)
 
+      // With the corrected routing order (route first, then check deadlines), all 3 contracts
+      // are active at routing time. Sorted by urgency (most urgent first): contract-1 (past
+      // deadline, already full), contract-3 (past deadline, needs 5000), contract-2 (far future).
+      // Contract-3 absorbs packets before contract-2. Deadline enforcement then marks contract-1
+      // as completed and contract-3 as failed; contract-2 stays active.
       system.tick(2000)
 
       const state = system.getState()
       expect(state.contracts[0].status).toBe('completed')
-      expect(state.contracts[1].currentVolume).toBeGreaterThan(0)
+      expect(state.contracts[1].status).toBe('active')
       expect(state.contracts[2].status).toBe('failed')
     })
 

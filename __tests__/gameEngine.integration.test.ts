@@ -35,22 +35,24 @@ describe('GameEngine Integration Tests', () => {
     let successCount = 0
     let failureCount = 0
 
-    // Create state with expired contract deadline and high throughput
+    // Create state with expired contract deadline and a target unreachable in one tick.
+    // Node throughput is 200 pps (100x scale). Contract needs 50000 more packets but
+    // deadline is already past — packets routed this tick cannot save it.
     const now = Date.now()
     const boostedState = createInitialGameState({
       nodes: [{
         id: 'node-1',
-        throughput: 5000,
+        throughput: 200,
         heat: 0,
-        efficiency: 1.0,
+        efficiency: 0.0,
         status: 'online',
         upgrades: [],
         lastMeltdownTime: null,
       }],
       contracts: [{
         id: 'contract-test-1',
-        targetVolume: 100,  // Low target so we can reach it quickly
-        currentVolume: 50,  // Already partially complete
+        targetVolume: 100000,  // Far beyond what one tick can deliver
+        currentVolume: 50000,  // Still needs 50000 more packets
         deadline: now - 1000,  // Deadline already passed
         reward: 50,
         penalty: 10,
@@ -65,7 +67,7 @@ describe('GameEngine Integration Tests', () => {
       () => failureCount++
     )
 
-    // Run just one tick - with deadline in past and currentVolume < targetVolume, should fail
+    // Run one tick - deadline is past and packets generated (~200) can't bridge the 50000 gap
     boostedEngine.tick()
 
     expect(failureCount).toBe(1)

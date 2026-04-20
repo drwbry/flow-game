@@ -37,9 +37,10 @@ export class GameEngine implements IGameEngine {
 
     return {
       player: {
-        ...sentimentState.player,
         credits: economyState.credits,
         totalPacketsProcessed: this.state.player.totalPacketsProcessed,
+        sentiment: sentimentState.sentiment,
+        consecutiveSuccesses: sentimentState.consecutiveSuccesses,
       },
       nodes: nodeState.nodes,
       contracts: contractState.contracts,

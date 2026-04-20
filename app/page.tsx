@@ -9,7 +9,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     initializeGame()
-  }, [])
+  }, [initializeGame])
 
   useEffect(() => {
     if (!isRunning) return

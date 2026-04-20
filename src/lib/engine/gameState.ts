@@ -30,7 +30,7 @@ export const DEFAULT_UPGRADES: Upgrade[] = [
     name: 'Cooling System Alpha',
     cost: 120,
     effects: {
-      efficiency: 1.2,
+      efficiency: 0.5,
     },
   },
   {
@@ -38,7 +38,7 @@ export const DEFAULT_UPGRADES: Upgrade[] = [
     name: 'Cooling System Beta',
     cost: 250,
     effects: {
-      efficiency: 1.4,
+      efficiency: 0.4,
     },
   },
 ]

@@ -72,7 +72,7 @@ export interface IUpgradeSystem {
 }
 
 export interface ISentimentSystem {
-  getState(): { player: PlayerState }
+  getState(): { sentiment: number; consecutiveSuccesses: number }
   recordSuccess(): void
   recordFailure(): void
   getContractDifficultyWeights(): { safe: number; hard: number }
