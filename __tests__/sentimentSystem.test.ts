@@ -39,10 +39,10 @@ describe('SentimentSystem', () => {
   })
 
   describe('recordSuccess', () => {
-    it('should increase sentiment by 6 on first success', () => {
+    it('should increase sentiment by 5 on first success', () => {
       sentimentSystem.recordSuccess()
       const state = sentimentSystem.getState()
-      expect(state.player.sentiment).toBe(56)
+      expect(state.player.sentiment).toBe(55)
     })
 
     it('should increment consecutive successes counter', () => {
@@ -52,40 +52,40 @@ describe('SentimentSystem', () => {
     })
 
     it('should add streak bonus on second consecutive success', () => {
-      sentimentSystem.recordSuccess() // +6, sentiment = 56
-      sentimentSystem.recordSuccess() // +5 + 2 bonus = +7, sentiment = 63
+      sentimentSystem.recordSuccess() // streak=0 before → +5, sentiment = 55
+      sentimentSystem.recordSuccess() // streak=1 before → +6, sentiment = 61
       const state = sentimentSystem.getState()
-      expect(state.player.sentiment).toBe(63)
+      expect(state.player.sentiment).toBe(61)
     })
 
     it('should add streak bonus on third consecutive success', () => {
-      sentimentSystem.recordSuccess() // +6, sentiment = 56
-      sentimentSystem.recordSuccess() // +5 + 2 = +7, sentiment = 63
-      sentimentSystem.recordSuccess() // +5 + 3 = +8, sentiment = 71
+      sentimentSystem.recordSuccess() // streak=0 before → +5, sentiment = 55
+      sentimentSystem.recordSuccess() // streak=1 before → +6, sentiment = 61
+      sentimentSystem.recordSuccess() // streak=2 before → +7, sentiment = 68
       const state = sentimentSystem.getState()
-      expect(state.player.sentiment).toBe(71)
+      expect(state.player.sentiment).toBe(68)
     })
 
     it('should achieve max bonus of +8 on fourth consecutive success', () => {
-      sentimentSystem.recordSuccess() // +6, sentiment = 56
-      sentimentSystem.recordSuccess() // +7, sentiment = 63
-      sentimentSystem.recordSuccess() // +8, sentiment = 71
-      sentimentSystem.recordSuccess() // +5 + min(4, 3) = +8 capped, sentiment = 79
+      sentimentSystem.recordSuccess() // streak=0 before → +5, sentiment = 55
+      sentimentSystem.recordSuccess() // streak=1 before → +6, sentiment = 61
+      sentimentSystem.recordSuccess() // streak=2 before → +7, sentiment = 68
+      sentimentSystem.recordSuccess() // streak=3 before → +8 (min(3,3)), sentiment = 76
       const state = sentimentSystem.getState()
-      expect(state.player.sentiment).toBe(79)
+      expect(state.player.sentiment).toBe(76)
     })
 
     it('should cap sentiment at 100', () => {
       const system = new SentimentSystem(97)
-      system.recordSuccess() // +6 would go to 103, but capped at 100
+      system.recordSuccess() // +5 would go to 102, but capped at 100
       const state = system.getState()
       expect(state.player.sentiment).toBe(100)
     })
 
     it('should not exceed 100 even with streak bonus', () => {
       const system = new SentimentSystem(94)
-      system.recordSuccess()
-      system.recordSuccess() // +7 would go to 107, capped at 100
+      system.recordSuccess() // +5 = 99
+      system.recordSuccess() // +6 would go to 105, capped at 100
       const state = system.getState()
       expect(state.player.sentiment).toBe(100)
     })
@@ -208,14 +208,14 @@ describe('SentimentSystem', () => {
       expect(state.player.consecutiveSuccesses).toBe(1)
     })
 
-    it('should apply correct bonus pattern: 6, 7, 8, 8', () => {
+    it('should apply correct bonus pattern: 5, 6, 7, 8', () => {
       const system = new SentimentSystem(0)
-      system.recordSuccess() // +6 = 6
-      system.recordSuccess() // +7 = 13
-      system.recordSuccess() // +8 = 21
-      system.recordSuccess() // +8 = 29
+      system.recordSuccess() // streak=0 before → +5 = 5
+      system.recordSuccess() // streak=1 before → +6 = 11
+      system.recordSuccess() // streak=2 before → +7 = 18
+      system.recordSuccess() // streak=3 before → +8 = 26
       const state = system.getState()
-      expect(state.player.sentiment).toBe(29)
+      expect(state.player.sentiment).toBe(26)
     })
   })
 
@@ -226,8 +226,8 @@ describe('SentimentSystem', () => {
       sentimentSystem.recordFailure()
       sentimentSystem.recordSuccess()
       const state = sentimentSystem.getState()
-      // 50 + 6 + 7 - 15 + 6 = 54
-      expect(state.player.sentiment).toBe(54)
+      // 50 + 5 + 6 - 15 + 5 = 51
+      expect(state.player.sentiment).toBe(51)
       expect(state.player.consecutiveSuccesses).toBe(1)
     })
 

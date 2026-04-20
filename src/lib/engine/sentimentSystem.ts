@@ -21,13 +21,10 @@ export class SentimentSystem implements ISentimentSystem {
   }
 
   recordSuccess(): void {
-    this.consecutiveSuccesses += 1
-    const streakBonus = Math.min(this.consecutiveSuccesses, 3)
-    const sentimentGain = 5 + streakBonus
-    this.sentiment += sentimentGain
-    if (this.sentiment > 100) {
-      this.sentiment = 100
-    }
+    const streakBonus = Math.min(this.consecutiveSuccesses, 3) // 0 on first call
+    const sentimentGain = 5 + streakBonus   // first call: 5+0=5
+    this.sentiment = Math.min(100, this.sentiment + sentimentGain)
+    this.consecutiveSuccesses += 1           // increment after
   }
 
   recordFailure(): void {

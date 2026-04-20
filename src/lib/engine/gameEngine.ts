@@ -91,7 +91,7 @@ export class GameEngine implements IGameEngine {
 
       // Detect completion
       if (before.status === 'active' && after.status === 'completed') {
-        this.economy.settleRevenue(after.reward)
+        this.economy.addCredits(after.reward)
         this.sentimentSystem.recordSuccess()
         if (this.onContractSuccess) {
           this.onContractSuccess({ ...after })
@@ -118,7 +118,10 @@ export class GameEngine implements IGameEngine {
       contractsAfter.push(...newContracts)
     }
 
-    // Step 6: Update internal state
+    // Step 6: Settle passive packet revenue
+    this.economy.settleRevenue(totalPackets)
+
+    // Step 7: Update internal state
     const fullState = this.getState()
     this.state = fullState
   }

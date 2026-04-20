@@ -18,16 +18,16 @@ export class NodeManager implements INodeManager {
 
   tick(nodes: Node[]): void {
     this.nodes = nodes.map(node => {
-      // Determine status from CURRENT heat (before update)
-      const status = node.heat >= HEAT_CRITICAL_THRESHOLD ? 'critical' : 'online'
-
       // Calculate heat delta
-      // Cooling capacity is inversely related to efficiency
-      // High efficiency (1.0) = low cooling capacity (0)
-      // Low efficiency (0) = high cooling capacity (50)
-      const coolingCapacity = (1 - node.efficiency) * 50
+      // Cooling capacity is directly related to efficiency
+      // High efficiency (1.0) = max cooling capacity (50)
+      // Low efficiency (0.0) = no cooling capacity (0)
+      const coolingCapacity = node.efficiency * 50
       const heatDelta = node.throughput * HEAT_RATE_K - coolingCapacity
       const newHeat = Math.max(0, Math.min(HEAT_CAP, node.heat + heatDelta))
+
+      // Determine status from NEW heat (after update)
+      const status: 'online' | 'critical' = newHeat >= HEAT_CRITICAL_THRESHOLD ? 'critical' : 'online'
 
       return {
         ...node,

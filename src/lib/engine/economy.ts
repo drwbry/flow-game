@@ -18,6 +18,14 @@ export class Economy implements IEconomy {
     this.credits += creditEarned
   }
 
+  addCredits(amount: number): void {
+    this.credits += amount
+  }
+
+  subtractCredits(amount: number): void {
+    this.credits = Math.max(0, this.credits - amount)
+  }
+
   applyPenalty(amount: number): void {
     this.credits -= amount
     if (this.credits < 0) {

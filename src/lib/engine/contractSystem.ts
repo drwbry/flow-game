@@ -1,5 +1,8 @@
 import { IContractSystem, Contract } from './types'
 
+const SAFE_DEADLINE_MS = 120 * 1000   // 120 seconds
+const HARD_DEADLINE_MS = 40 * 1000    // 40 seconds
+
 export class ContractSystem implements IContractSystem {
   private contracts: Contract[]
 
@@ -16,24 +19,27 @@ export class ContractSystem implements IContractSystem {
   tick(packetsAvailable: number): void {
     let remainingPackets = packetsAvailable
 
-    for (let i = 0; i < this.contracts.length; i++) {
-      const contract = this.contracts[i]
-
-      // Check deadline enforcement
+    // First pass: enforce deadlines on all contracts
+    for (const contract of this.contracts) {
       if (contract.deadline <= Date.now()) {
         if (contract.status === 'active') {
           contract.status =
             contract.currentVolume >= contract.targetVolume ? 'completed' : 'failed'
         }
       }
+    }
 
-      // Route packets to active contracts
-      if (contract.status === 'active' && remainingPackets > 0) {
-        const packetsNeeded = contract.targetVolume - contract.currentVolume
-        const packetsToRoute = Math.min(packetsNeeded, remainingPackets)
-        contract.currentVolume += packetsToRoute
-        remainingPackets -= packetsToRoute
-      }
+    // Route packets to active contracts sorted by deadline (most urgent first)
+    const activeContracts = this.contracts
+      .filter(c => c.status === 'active')
+      .sort((a, b) => a.deadline - b.deadline)
+
+    for (const contract of activeContracts) {
+      if (remainingPackets <= 0) break
+      const packetsNeeded = contract.targetVolume - contract.currentVolume
+      const packetsToRoute = Math.min(packetsNeeded, remainingPackets)
+      contract.currentVolume += packetsToRoute
+      remainingPackets -= packetsToRoute
     }
   }
 
@@ -48,7 +54,7 @@ export class ContractSystem implements IContractSystem {
           id: `contract-${now}-${i}`,
           targetVolume: 10000,
           currentVolume: 0,
-          deadline: now + 1800000,
+          deadline: now + SAFE_DEADLINE_MS,
           reward: 50,
           penalty: 10,
           status: 'active',
@@ -61,7 +67,7 @@ export class ContractSystem implements IContractSystem {
           id: `contract-${now}-${i}`,
           targetVolume: 10000,
           currentVolume: 0,
-          deadline: now + 900000,
+          deadline: now + HARD_DEADLINE_MS,
           reward: 100,
           penalty: 50,
           status: 'active',

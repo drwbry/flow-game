@@ -63,14 +63,14 @@ describe('ContractSystem', () => {
       })
     })
 
-    it('should generate safe contracts with deadline ~30 minutes from now', () => {
+    it('should generate safe contracts with deadline ~120 seconds from now', () => {
       const before = Date.now()
       const contracts = contractSystem.generateNewContracts('safe')
       const after = Date.now()
 
       contracts.forEach((contract) => {
-        const expectedDeadlineMin = before + 1800000
-        const expectedDeadlineMax = after + 1800000
+        const expectedDeadlineMin = before + 120000
+        const expectedDeadlineMax = after + 120000
         expect(contract.deadline).toBeGreaterThanOrEqual(expectedDeadlineMin)
         expect(contract.deadline).toBeLessThanOrEqual(expectedDeadlineMax)
       })
@@ -90,14 +90,14 @@ describe('ContractSystem', () => {
       })
     })
 
-    it('should generate hard contracts with deadline ~15 minutes from now', () => {
+    it('should generate hard contracts with deadline ~40 seconds from now', () => {
       const before = Date.now()
       const contracts = contractSystem.generateNewContracts('hard')
       const after = Date.now()
 
       contracts.forEach((contract) => {
-        const expectedDeadlineMin = before + 900000
-        const expectedDeadlineMax = after + 900000
+        const expectedDeadlineMin = before + 40000
+        const expectedDeadlineMax = after + 40000
         expect(contract.deadline).toBeGreaterThanOrEqual(expectedDeadlineMin)
         expect(contract.deadline).toBeLessThanOrEqual(expectedDeadlineMax)
       })

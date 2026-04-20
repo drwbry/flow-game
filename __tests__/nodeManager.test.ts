@@ -9,7 +9,7 @@ describe('NodeManager', () => {
       id: 'node-1',
       throughput: 200,
       heat: 0,
-      efficiency: 1.0,
+      efficiency: 0.0,
       status: 'online',
       upgrades: [],
       lastMeltdownTime: null,
@@ -22,12 +22,10 @@ describe('NodeManager', () => {
       const nodes = nodeManager.getState().nodes
       const initialHeat = nodes[0].heat
 
-      // Mock: K = 0.1, no cooling initially
+      // throughput 200, K=0.1, efficiency 0.0, no cooling → heat_delta = 200 * 0.1 - 0 = 20
       nodeManager.tick(nodes)
 
       const newHeat = nodeManager.getState().nodes[0].heat
-      // throughput 200, K=0.1, efficiency 1.0, no cooling
-      // heat_delta = 200 * 0.1 - 0 = 20
       expect(newHeat).toBe(initialHeat + 20)
     })
 
@@ -43,8 +41,8 @@ describe('NodeManager', () => {
     it('should not go below 0', () => {
       let nodes = nodeManager.getState().nodes
       nodes[0].heat = 5
-      // Simulate cooling that exceeds heat
-      nodes[0].efficiency = 1.0 // min cooling (coolingCapacity = (1 - 1.0) * 50 = 0)
+      // Simulate max cooling that exceeds heat
+      nodes[0].efficiency = 1.0 // max cooling (coolingCapacity = 1.0 * 50 = 50, heatDelta = 20 - 50 = -30)
       nodeManager.tick(nodes)
 
       nodes = nodeManager.getState().nodes
@@ -62,7 +60,8 @@ describe('NodeManager', () => {
 
     it('should mark node online when heat < 80', () => {
       let nodes = nodeManager.getState().nodes
-      nodes[0].heat = 79
+      // heat=50, efficiency=0.0, heatDelta=20, newHeat=70 → online
+      nodes[0].heat = 50
       nodeManager.tick(nodes)
 
       nodes = nodeManager.getState().nodes

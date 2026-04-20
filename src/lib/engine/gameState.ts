@@ -50,7 +50,7 @@ export function createInitialGameState(overrides?: Partial<GameState>): GameStat
     id: 'node-1',
     throughput: 200,
     heat: 0,
-    efficiency: 1.0,
+    efficiency: 0.0, // start with no cooling; upgrades improve this
     status: 'online',
     upgrades: [],
     lastMeltdownTime: null,
