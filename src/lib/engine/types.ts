@@ -29,7 +29,6 @@ export interface Upgrade {
   effects: {
     throughput?: number
     efficiency?: number
-    cooling?: number
   }
 }
 

@@ -26,19 +26,19 @@ export const DEFAULT_UPGRADES: Upgrade[] = [
     },
   },
   {
-    id: 'upgrade-cooling-1',
+    id: 'upgrade-cooling-20',
     name: 'Cooling System Alpha',
     cost: 120,
     effects: {
-      cooling: 10,
+      efficiency: 1.2,
     },
   },
   {
-    id: 'upgrade-cooling-2',
+    id: 'upgrade-cooling-beta',
     name: 'Cooling System Beta',
     cost: 250,
     effects: {
-      cooling: 25,
+      efficiency: 1.4,
     },
   },
 ]

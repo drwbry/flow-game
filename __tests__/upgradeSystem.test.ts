@@ -29,7 +29,7 @@ describe('UpgradeSystem', () => {
         name: 'Cooling Module',
         cost: 100,
         effects: {
-          cooling: 10,
+          efficiency: 0.1,
         },
       },
       {
@@ -39,7 +39,6 @@ describe('UpgradeSystem', () => {
         effects: {
           throughput: 30,
           efficiency: 0.05,
-          cooling: 5,
         },
       },
     ]
@@ -95,10 +94,11 @@ describe('UpgradeSystem', () => {
       expect(testNode.efficiency).toBe(originalEfficiency + 0.1)
     })
 
-    it('should apply cooling modifier correctly', () => {
+    it('should apply efficiency modifier from cooling upgrade correctly', () => {
+      const originalEfficiency = testNode.efficiency
       upgradeSystem.applyUpgradesToNode(testNode, ['upgrade3'])
       expect(testNode.throughput).toBe(200) // unchanged
-      expect(testNode.efficiency).toBe(0.5) // unchanged
+      expect(testNode.efficiency).toBe(originalEfficiency + 0.1)
     })
 
     it('should skip non-existent upgrade IDs without error', () => {
@@ -139,9 +139,9 @@ describe('UpgradeSystem', () => {
 
     it('should handle multiple upgrades with stacking effects', () => {
       upgradeSystem.applyUpgradesToNode(testNode, ['upgrade3', 'upgrade4'])
-      // upgrade3 has no throughput/efficiency effects; upgrade4 adds 30 throughput and 0.05 efficiency
+      // upgrade3 adds 0.1 efficiency; upgrade4 adds 30 throughput and 0.05 efficiency
       expect(testNode.throughput).toBe(230) // 200 + 30
-      expect(testNode.efficiency).toBe(0.55) // 0.5 + 0.05
+      expect(testNode.efficiency).toBe(0.65) // 0.5 + 0.1 + 0.05
     })
   })
 
