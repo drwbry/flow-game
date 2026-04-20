@@ -111,7 +111,6 @@ export class GameEngine implements IGameEngine {
     // Step 5: Generate new contracts if needed
     const activeContracts = contractsAfter.filter(c => c.status === 'active')
     if (activeContracts.length < 2) {
-      const sentimentState = this.sentimentSystem.getState()
       const weights = this.sentimentSystem.getContractDifficultyWeights()
       const difficulty = Math.random() < weights.hard ? 'hard' : 'safe'
       const newContracts = this.contractSystem.generateNewContracts(difficulty)

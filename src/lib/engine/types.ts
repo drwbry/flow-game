@@ -60,6 +60,8 @@ export interface INodeManager {
 
 export interface IEconomy {
   getState(): { credits: number }
+  addCredits(amount: number): void
+  subtractCredits(amount: number): void
   settleRevenue(packets: number): void
   applyPenalty(amount: number): void
 }
