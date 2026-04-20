@@ -4,7 +4,6 @@ export interface Node {
   throughput: number // base packets/second, 100x scale
   heat: number // 0–100
   efficiency: number // 0.0–1.0
-  cooling: number // cooling capacity modifier from upgrades
   status: 'online' | 'critical'
   upgrades: string[] // upgrade IDs
   lastMeltdownTime: number | null

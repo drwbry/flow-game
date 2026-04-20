@@ -51,7 +51,6 @@ describe('UpgradeSystem', () => {
       throughput: 200,
       heat: 50,
       efficiency: 0.5,
-      cooling: 0,
       status: 'online',
       upgrades: [],
       lastMeltdownTime: null,
@@ -98,7 +97,6 @@ describe('UpgradeSystem', () => {
 
     it('should apply cooling modifier correctly', () => {
       upgradeSystem.applyUpgradesToNode(testNode, ['upgrade3'])
-      expect(testNode.cooling).toBe(10)
       expect(testNode.throughput).toBe(200) // unchanged
       expect(testNode.efficiency).toBe(0.5) // unchanged
     })
@@ -139,11 +137,9 @@ describe('UpgradeSystem', () => {
       expect(testNode.efficiency).toBe(originalEfficiency + 0.05)
     })
 
-    it('should handle multiple upgrades with stacking cooling effects', () => {
+    it('should handle multiple upgrades with stacking effects', () => {
       upgradeSystem.applyUpgradesToNode(testNode, ['upgrade3', 'upgrade4'])
-      // Both upgrades have cooling effects, they should be accounted for
-      // upgrade3 has cooling: 10, upgrade4 adds 30 throughput, 0.05 efficiency, and cooling: 5
-      expect(testNode.cooling).toBe(15) // 10 + 5
+      // upgrade3 has no throughput/efficiency effects; upgrade4 adds 30 throughput and 0.05 efficiency
       expect(testNode.throughput).toBe(230) // 200 + 30
       expect(testNode.efficiency).toBe(0.55) // 0.5 + 0.05
     })

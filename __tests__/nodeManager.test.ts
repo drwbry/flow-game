@@ -10,7 +10,6 @@ describe('NodeManager', () => {
       throughput: 200,
       heat: 0,
       efficiency: 1.0,
-      cooling: 0,
       status: 'online',
       upgrades: [],
       lastMeltdownTime: null,
@@ -45,7 +44,7 @@ describe('NodeManager', () => {
       let nodes = nodeManager.getState().nodes
       nodes[0].heat = 5
       // Simulate cooling that exceeds heat
-      nodes[0].efficiency = 1.0 // max cooling
+      nodes[0].efficiency = 1.0 // min cooling (coolingCapacity = (1 - 1.0) * 50 = 0)
       nodeManager.tick(nodes)
 
       nodes = nodeManager.getState().nodes

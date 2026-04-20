@@ -16,7 +16,6 @@ export class UpgradeSystem implements IUpgradeSystem {
   applyUpgradesToNode(node: Node, upgradeIds: string[]): void {
     let totalThroughputModifier = 0
     let totalEfficiencyModifier = 0
-    let totalCoolingModifier = 0
 
     for (const upgradeId of upgradeIds) {
       const upgrade = this.upgrades.find(u => u.id === upgradeId)
@@ -30,14 +29,10 @@ export class UpgradeSystem implements IUpgradeSystem {
       if (upgrade.effects.efficiency) {
         totalEfficiencyModifier += upgrade.effects.efficiency
       }
-      if (upgrade.effects.cooling) {
-        totalCoolingModifier += upgrade.effects.cooling
-      }
     }
 
     node.throughput += totalThroughputModifier
     node.efficiency += totalEfficiencyModifier
-    node.cooling += totalCoolingModifier
 
     if (node.efficiency > 1.0) {
       node.efficiency = 1.0
