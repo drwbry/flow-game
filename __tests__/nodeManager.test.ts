@@ -10,6 +10,7 @@ describe('NodeManager', () => {
       throughput: 200,
       heat: 0,
       efficiency: 1.0,
+      cooling: 0,
       status: 'online',
       upgrades: [],
       lastMeltdownTime: null,
