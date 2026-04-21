@@ -8,7 +8,8 @@ interface GameStore {
   state: GameState | null
   initializeGame: () => void
   tick: () => void
-  getState: () => GameState | null
+  coolNode: (nodeId: string) => void
+  purchaseUpgrade: (upgradeId: string, nodeId: string) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -24,13 +25,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
   tick: () => {
     const { engine } = get()
     if (!engine) return
-
     engine.tick()
     set({ state: engine.getState() })
   },
 
-  getState: () => {
-    const { state } = get()
-    return state
+  coolNode: (nodeId: string) => {
+    const { engine } = get()
+    if (!engine) return
+    engine.coolNode(nodeId)
+    set({ state: engine.getState() })
+  },
+
+  purchaseUpgrade: (upgradeId: string, nodeId: string) => {
+    const { engine } = get()
+    if (!engine) return
+    engine.purchaseUpgrade(upgradeId, nodeId)
+    set({ state: engine.getState() })
   },
 }))
