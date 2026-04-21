@@ -87,4 +87,6 @@ export interface IContractSystem {
 export interface IGameEngine {
   getState(): GameState
   tick(): void
+  coolNode(nodeId: string): void
+  purchaseUpgrade(upgradeId: string, nodeId: string): boolean
 }
