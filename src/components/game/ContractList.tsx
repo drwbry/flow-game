@@ -19,6 +19,7 @@ export function ContractList({ contracts }: ContractListProps) {
   return (
     <div className="flex flex-col gap-3">
       {active.map(contract => {
+        // updates on each parent re-render; parent ticks every 1s
         const timeRemaining = Math.max(0, Math.ceil((contract.deadline - Date.now()) / 1000))
         const urgent = timeRemaining < 15
 
@@ -30,11 +31,11 @@ export function ContractList({ contracts }: ContractListProps) {
             }`}
           >
             <div className="flex justify-between items-center mb-1">
-              <span>{contract.id}</span>
+              <span>{contract.id.toUpperCase()}</span>
               <span>
                 {contract.difficulty === 'safe'
-                  ? <span className="text-green-400">SAFE</span>
-                  : <span className="text-amber-400">HARD</span>
+                  ? <span className="border border-green-400 text-green-400 px-1">SAFE</span>
+                  : <span className="border border-amber-400 text-amber-400 px-1">HARD</span>
                 }
               </span>
             </div>
