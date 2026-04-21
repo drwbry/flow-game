@@ -123,4 +123,66 @@ describe('GameEngine Integration Tests', () => {
     const heatedPackets = heatedState2.player.totalPacketsProcessed
     expect(coolPackets).toBeGreaterThan(heatedPackets)
   })
+
+  describe('coolNode', () => {
+    test('should reduce node heat by 30', () => {
+      const state = createInitialGameState()
+      state.nodes[0].heat = 60
+      const engine = new GameEngine(state)
+
+      engine.coolNode('node-1')
+
+      expect(engine.getState().nodes[0].heat).toBe(30)
+    })
+
+    test('should floor heat at 0 when heat is less than 30', () => {
+      const state = createInitialGameState()
+      state.nodes[0].heat = 10
+      const engine = new GameEngine(state)
+
+      engine.coolNode('node-1')
+
+      expect(engine.getState().nodes[0].heat).toBe(0)
+    })
+  })
+
+  describe('purchaseUpgrade', () => {
+    test('should deduct credits and apply upgrade stats to node', () => {
+      const state = createInitialGameState()
+      // Default credits: 1000. upgrade-throughput-1 costs 100, adds +50 throughput.
+      const engine = new GameEngine(state)
+
+      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1')
+
+      expect(result).toBe(true)
+      const newState = engine.getState()
+      expect(newState.player.credits).toBe(900) // 1000 − 100
+      expect(newState.nodes[0].upgrades).toContain('upgrade-throughput-1')
+      expect(newState.nodes[0].throughput).toBe(250) // 200 base + 50 from upgrade
+    })
+
+    test('should return false and not deduct credits when insufficient', () => {
+      const state = createInitialGameState()
+      state.player.credits = 50 // upgrade-throughput-1 costs 100
+      const engine = new GameEngine(state)
+
+      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1')
+
+      expect(result).toBe(false)
+      expect(engine.getState().player.credits).toBe(50) // unchanged
+      expect(engine.getState().nodes[0].upgrades).not.toContain('upgrade-throughput-1')
+    })
+
+    test('should return false and not double-apply when already owned', () => {
+      const state = createInitialGameState()
+      const engine = new GameEngine(state)
+
+      engine.purchaseUpgrade('upgrade-throughput-1', 'node-1') // first purchase: 900¢, throughput 250
+      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1') // second attempt
+
+      expect(result).toBe(false)
+      expect(engine.getState().player.credits).toBe(900) // only deducted once
+      expect(engine.getState().nodes[0].throughput).toBe(250) // not double-stacked to 300
+    })
+  })
 })

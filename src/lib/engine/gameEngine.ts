@@ -60,6 +60,31 @@ export class GameEngine implements IGameEngine {
     this.onContractFailure = onFailure
   }
 
+  coolNode(nodeId: string): void {
+    const nodes = this.nodeManager.getState().nodes
+    const node = nodes.find(n => n.id === nodeId)
+    if (!node) return
+    node.heat = Math.max(0, node.heat - 30)
+  }
+
+  purchaseUpgrade(upgradeId: string, nodeId: string): boolean {
+    const nodes = this.nodeManager.getState().nodes
+    const node = nodes.find(n => n.id === nodeId)
+    if (!node) return false
+    if (node.upgrades.includes(upgradeId)) return false
+
+    const upgrade = this.state.upgrades.find(u => u.id === upgradeId)
+    if (!upgrade) return false
+
+    if (this.economy.getState().credits < upgrade.cost) return false
+
+    this.economy.subtractCredits(upgrade.cost)
+    node.upgrades.push(upgradeId)
+    // Pass only the new upgrade ID — re-applying all upgrades would double-stack stats
+    this.upgradeSystem.applyUpgradesToNode(node, [upgradeId])
+    return true
+  }
+
   tick(): void {
     // Step 1: Update node heat and status
     const nodes = this.state.nodes
