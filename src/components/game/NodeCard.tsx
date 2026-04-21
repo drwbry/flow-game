@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Node } from '@/lib/engine/types'
 import { asciiBar } from '@/lib/asciiBar'
+import { effectiveThroughput } from '@/lib/engine/nodeManager'
 
 interface NodeCardProps {
   node: Node
@@ -19,6 +20,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
   }, [])
 
   function handleCool() {
+    if (intervalRef.current) clearInterval(intervalRef.current)
     onCool()
     setCooldownRemaining(5000)
     intervalRef.current = setInterval(() => {
@@ -33,7 +35,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
     }, 100)
   }
 
-  const effective = Math.max(100, node.throughput * (1 - node.heat / 100))
+  const effective = Math.round(effectiveThroughput(node))
   const cardBorder = node.status === 'critical' ? 'border-red-400' : 'border-green-400'
   const isOnCooldown = cooldownRemaining > 0
 

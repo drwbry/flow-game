@@ -5,6 +5,10 @@ const HEAT_CAP = 100
 const HEAT_CRITICAL_THRESHOLD = 80
 const MINIMUM_THROUGHPUT_FLOOR = 100
 
+export function effectiveThroughput(node: { throughput: number; heat: number }): number {
+  return Math.max(MINIMUM_THROUGHPUT_FLOOR, node.throughput * (1 - node.heat / 100))
+}
+
 export class NodeManager implements INodeManager {
   private nodes: Node[]
 
@@ -38,8 +42,7 @@ export class NodeManager implements INodeManager {
   }
 
   getEffectiveThroughput(node: Node): number {
-    const scaledDown = node.throughput * (1 - node.heat / 100)
-    return Math.max(MINIMUM_THROUGHPUT_FLOOR, scaledDown)
+    return effectiveThroughput(node)
   }
 
   generatePackets(node: Node): number {
