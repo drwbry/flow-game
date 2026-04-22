@@ -189,5 +189,19 @@ describe('GameEngine Integration Tests', () => {
       expect(engine.getState().player.credits).toBe(450) // only deducted once
       expect(engine.getState().nodes[0].throughput).toBe(250) // not double-stacked
     })
+
+    test('should return false when upgrade prerequisites are not met', () => {
+      const state = createInitialGameState({
+        player: { credits: 500, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
+      const engine = new GameEngine(state)
+
+      // throughput-2 requires throughput-1, which is not purchased
+      const result = engine.purchaseUpgrade('throughput-2', 'node-1')
+
+      expect(result).toBe(false)
+      expect(engine.getState().player.credits).toBe(500) // unchanged
+      expect(engine.getState().nodes[0].upgrades).not.toContain('throughput-2')
+    })
   })
 })

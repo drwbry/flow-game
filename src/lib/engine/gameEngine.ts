@@ -74,6 +74,7 @@ export class GameEngine implements IGameEngine {
 
     const upgrade = this.state.upgrades.find(u => u.id === upgradeId)
     if (!upgrade) return false
+    if (!upgrade.requires.every(id => node.upgrades.includes(id))) return false
 
     if (this.economy.getState().credits < upgrade.cost) return false
 
