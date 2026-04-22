@@ -26,6 +26,8 @@ export interface Upgrade {
   id: string
   name: string
   cost: number
+  tier: number        // 1 = always visible; 2+ = visible only after requires[] are purchased
+  requires: string[]  // upgrade IDs that must be owned before this appears in the shop
   effects: {
     throughput?: number
     efficiency?: number
