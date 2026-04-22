@@ -10,6 +10,7 @@ interface GameStore {
   tick: () => void
   coolNode: (nodeId: string) => void
   purchaseUpgrade: (upgradeId: string, nodeId: string) => void
+  acceptContract: (contractId: string) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -40,6 +41,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { engine } = get()
     if (!engine) return
     engine.purchaseUpgrade(upgradeId, nodeId)
+    set({ state: engine.getState() })
+  },
+
+  acceptContract: (contractId: string) => {
+    const { engine } = get()
+    if (!engine) return
+    engine.acceptContract(contractId)
     set({ state: engine.getState() })
   },
 }))

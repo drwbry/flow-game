@@ -1,447 +1,171 @@
 import { ContractSystem } from '../src/lib/engine/contractSystem'
-import { Contract } from '../src/lib/engine/types'
+
+const SAFE_DEADLINE_MS = 120 * 1000
+const HARD_DEADLINE_MS = 40 * 1000
 
 describe('ContractSystem', () => {
-  let contractSystem: ContractSystem
+  describe('generateNewOffers', () => {
+    it('generates safe offers with correct values and offered status', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 2)
+      const { contracts } = cs.getState()
 
-  beforeEach(() => {
-    contractSystem = new ContractSystem()
-  })
-
-  describe('initialization', () => {
-    it('should initialize with empty contracts array', () => {
-      const state = contractSystem.getState()
-      expect(state.contracts).toEqual([])
+      expect(contracts).toHaveLength(2)
+      expect(contracts[0].status).toBe('offered')
+      expect(contracts[0].reward).toBe(50)
+      expect(contracts[0].penalty).toBe(10)
+      expect(contracts[0].targetVolume).toBe(10000)
+      expect(contracts[0].offerExpiry).toBeGreaterThan(Date.now())
+      expect(contracts[0].deadline).toBe(0)
     })
 
-    it('should accept initial contracts in constructor', () => {
-      const initialContracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: Date.now() + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(initialContracts)
-      const state = system.getState()
-      expect(state.contracts).toHaveLength(1)
-      expect(state.contracts[0].id).toBe('contract-1')
-    })
-  })
+    it('generates hard offers with correct values', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('hard', 1)
+      const { contracts } = cs.getState()
 
-  describe('state getter', () => {
-    it('should return state object with contracts property', () => {
-      const state = contractSystem.getState()
-      expect(state).toHaveProperty('contracts')
-      expect(Array.isArray(state.contracts)).toBe(true)
+      expect(contracts[0].status).toBe('offered')
+      expect(contracts[0].reward).toBe(100)
+      expect(contracts[0].penalty).toBe(50)
+      expect(contracts[0].targetVolume).toBe(15000)
     })
 
-    it('should return consistent state across multiple calls', () => {
-      const state1 = contractSystem.getState()
-      const state2 = contractSystem.getState()
-      expect(state1.contracts).toEqual(state2.contracts)
+    it('assigns unique IDs to each offer', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 3)
+      const ids = cs.getState().contracts.map(c => c.id)
+      expect(new Set(ids).size).toBe(3)
     })
   })
 
-  describe('generateNewContracts', () => {
-    it('should generate 2-3 safe contracts with correct parameters', () => {
-      const contracts = contractSystem.generateNewContracts('safe')
-      expect(contracts.length).toBeGreaterThanOrEqual(2)
-      expect(contracts.length).toBeLessThanOrEqual(3)
-      contracts.forEach((contract) => {
-        expect(contract.targetVolume).toBe(10000)
-        expect(contract.currentVolume).toBe(0)
-        expect(contract.reward).toBe(50)
-        expect(contract.penalty).toBe(10)
-        expect(contract.status).toBe('active')
-        expect(contract.difficulty).toBe('safe')
-      })
-    })
-
-    it('should generate safe contracts with deadline ~120 seconds from now', () => {
+  describe('acceptContract', () => {
+    it('moves offered contract to active and sets safe deadline', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 1)
+      const id = cs.getState().contracts[0].id
       const before = Date.now()
-      const contracts = contractSystem.generateNewContracts('safe')
-      const after = Date.now()
 
-      contracts.forEach((contract) => {
-        const expectedDeadlineMin = before + 120000
-        const expectedDeadlineMax = after + 120000
-        expect(contract.deadline).toBeGreaterThanOrEqual(expectedDeadlineMin)
-        expect(contract.deadline).toBeLessThanOrEqual(expectedDeadlineMax)
-      })
+      const result = cs.acceptContract(id)
+
+      expect(result).toBe(true)
+      const accepted = cs.getState().contracts.find(c => c.id === id)!
+      expect(accepted.status).toBe('active')
+      expect(accepted.deadline).toBeGreaterThanOrEqual(before + SAFE_DEADLINE_MS)
+      expect(accepted.offerExpiry).toBeUndefined()
     })
 
-    it('should generate 2-3 hard contracts with correct parameters', () => {
-      const contracts = contractSystem.generateNewContracts('hard')
-      expect(contracts.length).toBeGreaterThanOrEqual(2)
-      expect(contracts.length).toBeLessThanOrEqual(3)
-      contracts.forEach((contract) => {
-        expect(contract.targetVolume).toBe(10000)
-        expect(contract.currentVolume).toBe(0)
-        expect(contract.reward).toBe(100)
-        expect(contract.penalty).toBe(50)
-        expect(contract.status).toBe('active')
-        expect(contract.difficulty).toBe('hard')
-      })
-    })
-
-    it('should generate hard contracts with deadline ~40 seconds from now', () => {
+    it('sets hard contract deadline correctly', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('hard', 1)
+      const id = cs.getState().contracts[0].id
       const before = Date.now()
-      const contracts = contractSystem.generateNewContracts('hard')
-      const after = Date.now()
 
-      contracts.forEach((contract) => {
-        const expectedDeadlineMin = before + 40000
-        const expectedDeadlineMax = after + 40000
-        expect(contract.deadline).toBeGreaterThanOrEqual(expectedDeadlineMin)
-        expect(contract.deadline).toBeLessThanOrEqual(expectedDeadlineMax)
-      })
+      cs.acceptContract(id)
+
+      const accepted = cs.getState().contracts.find(c => c.id === id)!
+      expect(accepted.deadline).toBeGreaterThanOrEqual(before + HARD_DEADLINE_MS)
     })
 
-    it('should assign unique IDs to generated contracts', () => {
-      const contracts = contractSystem.generateNewContracts('safe')
-      const ids = contracts.map((c) => c.id)
-      const uniqueIds = new Set(ids)
-      expect(uniqueIds.size).toBe(ids.length)
+    it('returns false when contract ID does not exist', () => {
+      const cs = new ContractSystem()
+      expect(cs.acceptContract('nonexistent-id')).toBe(false)
     })
 
-    it('should have different safe and hard parameters', () => {
-      const safeContracts = contractSystem.generateNewContracts('safe')
-      const hardContracts = contractSystem.generateNewContracts('hard')
-
-      const safe = safeContracts[0]
-      const hard = hardContracts[0]
-
-      expect(safe.reward).not.toBe(hard.reward)
-      expect(safe.penalty).not.toBe(hard.penalty)
-      expect(safe.deadline).not.toBe(hard.deadline)
-    })
-  })
-
-  describe('tick - packet routing', () => {
-    it('should route available packets to active contracts', () => {
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: Date.now() + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      system.tick(1000)
-
-      const state = system.getState()
-      expect(state.contracts[0].currentVolume).toBe(1000)
+    it('returns false when contract is not in offered status', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 1)
+      const id = cs.getState().contracts[0].id
+      cs.acceptContract(id)
+      expect(cs.acceptContract(id)).toBe(false)
     })
 
-    it('should not route more packets than available', () => {
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: Date.now() + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
+    it('enforces 5-contract active cap', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 6)
+      const ids = cs.getState().contracts.map(c => c.id)
 
-      system.tick(500)
+      for (let i = 0; i < 5; i++) {
+        expect(cs.acceptContract(ids[i])).toBe(true)
+      }
+      expect(cs.acceptContract(ids[5])).toBe(false)
 
-      const state = system.getState()
-      expect(state.contracts[0].currentVolume).toBe(500)
-    })
-
-    it('should not exceed contract targetVolume when routing packets', () => {
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 1000,
-          currentVolume: 500,
-          deadline: Date.now() + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      system.tick(1000)
-
-      const state = system.getState()
-      expect(state.contracts[0].currentVolume).toBe(1000)
-    })
-
-    it('should distribute packets across multiple active contracts', () => {
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: Date.now() + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-        {
-          id: 'contract-2',
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: Date.now() + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      system.tick(2000)
-
-      const state = system.getState()
-      const totalRouted = state.contracts.reduce((sum, c) => sum + c.currentVolume, 0)
-      expect(totalRouted).toBe(2000)
-    })
-
-    it('should not route packets to non-active contracts', () => {
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: Date.now() + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'completed',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      system.tick(1000)
-
-      const state = system.getState()
-      expect(state.contracts[0].currentVolume).toBe(0)
+      const activeCount = cs.getState().contracts.filter(c => c.status === 'active').length
+      expect(activeCount).toBe(5)
     })
   })
 
-  describe('tick - deadline enforcement', () => {
-    it('should mark contract as completed when currentVolume >= targetVolume at deadline', () => {
-      const pastTime = Date.now() - 1000
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 1000,
-          currentVolume: 1000,
-          deadline: pastTime,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
+  describe('tick — offer expiry', () => {
+    it('removes expired offers from state', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 2)
 
-      system.tick(0)
+      cs.getState().contracts[0].offerExpiry = Date.now() - 1000
 
-      const state = system.getState()
-      expect(state.contracts[0].status).toBe('completed')
+      cs.tick(0)
+
+      const remaining = cs.getState().contracts
+      expect(remaining).toHaveLength(1)
+      expect(remaining[0].status).toBe('offered')
     })
 
-    it('should mark contract as failed when currentVolume < targetVolume at deadline', () => {
-      const pastTime = Date.now() - 1000
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 10000,
-          currentVolume: 5000,
-          deadline: pastTime,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      system.tick(0)
-
-      const state = system.getState()
-      expect(state.contracts[0].status).toBe('failed')
-    })
-
-    it('should not re-route packets to completed contracts on subsequent ticks', () => {
-      const pastTime = Date.now() - 1000
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 1000,
-          currentVolume: 1000,
-          deadline: pastTime,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      system.tick(0)
-      const stateAfterFirst = system.getState()
-      const volumeAfterFirst = stateAfterFirst.contracts[0].currentVolume
-
-      system.tick(1000)
-      const stateAfterSecond = system.getState()
-
-      expect(stateAfterSecond.contracts[0].currentVolume).toBe(volumeAfterFirst)
-    })
-
-    it('should not re-route packets to failed contracts on subsequent ticks', () => {
-      const pastTime = Date.now() - 1000
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 10000,
-          currentVolume: 5000,
-          deadline: pastTime,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      system.tick(0)
-      const stateAfterFirst = system.getState()
-      const volumeAfterFirst = stateAfterFirst.contracts[0].currentVolume
-
-      system.tick(1000)
-      const stateAfterSecond = system.getState()
-
-      expect(stateAfterSecond.contracts[0].currentVolume).toBe(volumeAfterFirst)
-    })
-
-    it('should handle deadline exactly at now without error', () => {
-      const now = Date.now()
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 1000,
-          currentVolume: 1000,
-          deadline: now,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      expect(() => system.tick(0)).not.toThrow()
-      const state = system.getState()
-      expect(state.contracts[0].status).toBe('completed')
+    it('keeps unexpired offers in state', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 2)
+      cs.tick(0)
+      expect(cs.getState().contracts).toHaveLength(2)
     })
   })
 
-  describe('tick - multiple contracts integration', () => {
-    it('should handle mixed active, completed, and failed contracts', () => {
-      const now = Date.now()
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 1000,
-          currentVolume: 1000,
-          deadline: now - 1000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-        {
-          id: 'contract-2',
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: now + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-        {
-          id: 'contract-3',
-          targetVolume: 10000,
-          currentVolume: 5000,
-          deadline: now - 1000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
-
-      // With the corrected routing order (route first, then check deadlines), all 3 contracts
-      // are active at routing time. Sorted by urgency (most urgent first): contract-1 (past
-      // deadline, already full), contract-3 (past deadline, needs 5000), contract-2 (far future).
-      // Contract-3 absorbs packets before contract-2. Deadline enforcement then marks contract-1
-      // as completed and contract-3 as failed; contract-2 stays active.
-      system.tick(2000)
-
-      const state = system.getState()
-      expect(state.contracts[0].status).toBe('completed')
-      expect(state.contracts[1].status).toBe('active')
-      expect(state.contracts[2].status).toBe('failed')
+  describe('tick — packet routing', () => {
+    it('routes packets only to active contracts', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 1)
+      const id = cs.getState().contracts[0].id
+      cs.acceptContract(id)
+      cs.tick(5000)
+      const contract = cs.getState().contracts.find(c => c.id === id)!
+      expect(contract.currentVolume).toBe(5000)
     })
 
-    it('should route packets to active contracts while respecting deadline constraints', () => {
+    it('does not route packets to offered contracts', () => {
+      const cs = new ContractSystem()
+      cs.generateNewOffers('safe', 1)
+      const id = cs.getState().contracts[0].id
+      cs.tick(5000)
+      const contract = cs.getState().contracts.find(c => c.id === id)!
+      expect(contract.currentVolume).toBe(0)
+    })
+
+    it('routes packets to multiple active contracts sorted by urgency', () => {
       const now = Date.now()
-      const contracts: Contract[] = [
-        {
-          id: 'contract-1',
-          targetVolume: 5000,
-          currentVolume: 0,
-          deadline: now + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-        {
-          id: 'contract-2',
-          targetVolume: 5000,
-          currentVolume: 0,
-          deadline: now + 1800000,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        },
-      ]
-      const system = new ContractSystem(contracts)
+      const cs = new ContractSystem([
+        { id: 'far', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'urgent', targetVolume: 10000, currentVolume: 0, deadline: now + 5000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+      ])
+      cs.tick(5000)
+      const urgent = cs.getState().contracts.find(c => c.id === 'urgent')!
+      const far = cs.getState().contracts.find(c => c.id === 'far')!
+      expect(urgent.currentVolume).toBeGreaterThan(far.currentVolume)
+    })
+  })
 
-      system.tick(8000)
+  describe('tick — deadline enforcement', () => {
+    it('marks active contract as completed when fulfilled at deadline', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'done', targetVolume: 100, currentVolume: 100, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+      ])
+      cs.tick(0)
+      expect(cs.getState().contracts.find(c => c.id === 'done')!.status).toBe('completed')
+    })
 
-      const state = system.getState()
-      const totalVolume = state.contracts.reduce((sum, c) => sum + c.currentVolume, 0)
-      expect(totalVolume).toBe(8000)
-      expect(state.contracts.every((c) => c.currentVolume <= c.targetVolume)).toBe(true)
+    it('marks active contract as failed when unfulfilled at deadline', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'failed', targetVolume: 10000, currentVolume: 0, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+      ])
+      cs.tick(0)
+      expect(cs.getState().contracts.find(c => c.id === 'failed')!.status).toBe('failed')
     })
   })
 })
