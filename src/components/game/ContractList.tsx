@@ -22,12 +22,17 @@ export function ContractList({ contracts }: ContractListProps) {
         // updates on each parent re-render; parent ticks every 1s
         const timeRemaining = Math.max(0, Math.ceil((contract.deadline - Date.now()) / 1000))
         const urgent = timeRemaining < 15
+        const fulfilled = contract.currentVolume >= contract.targetVolume
+        const fullRed = urgent && !fulfilled   // full red card: urgently unfulfilled
+        const timerRed = urgent && fulfilled   // timer-only red: fulfilled but watching it close
 
         return (
           <div
             key={contract.id}
             className={`border p-3 font-mono text-sm ${
-              urgent ? 'border-red-400 bg-[#1a0000] text-red-400' : 'border-amber-400 text-amber-400'
+              fullRed
+                ? 'border-red-400 bg-[#1a0000] text-red-400'
+                : 'border-amber-400 text-amber-400'
             }`}
           >
             <div className="flex justify-between items-center mb-1">
@@ -39,8 +44,8 @@ export function ContractList({ contracts }: ContractListProps) {
                 }
               </span>
             </div>
-            <div className="mb-1">
-              {urgent ? '⚠ ' : ''}{timeRemaining}s ⏱
+            <div className={`mb-1 ${timerRed ? 'text-red-400' : ''}`}>
+              {fullRed ? '⚠ ' : ''}{timeRemaining}s ⏱
             </div>
             <div className="mb-1">
               {asciiBar(contract.currentVolume, contract.targetVolume)} {contract.currentVolume} / {contract.targetVolume}
