@@ -58,7 +58,7 @@ export function createInitialGameState(overrides?: Partial<GameState>): GameStat
 
   const defaultState: GameState = {
     player: {
-      credits: 1000,
+      credits: 0,
       totalPacketsProcessed: 0,
       sentiment: 50,
       consecutiveSuccesses: 0,
