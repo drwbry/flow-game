@@ -148,41 +148,60 @@ describe('GameEngine Integration Tests', () => {
 
   describe('purchaseUpgrade', () => {
     test('should deduct credits and apply upgrade stats to node', () => {
-      const state = createInitialGameState()
-      // Default credits: 1000. upgrade-throughput-1 costs 100, adds +50 throughput.
+      const state = createInitialGameState({
+        player: { credits: 500, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
       const engine = new GameEngine(state)
 
-      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1')
+      const result = engine.purchaseUpgrade('throughput-1', 'node-1')
 
       expect(result).toBe(true)
       const newState = engine.getState()
-      expect(newState.player.credits).toBe(900) // 1000 − 100
-      expect(newState.nodes[0].upgrades).toContain('upgrade-throughput-1')
+      expect(newState.player.credits).toBe(450) // 500 − 50
+      expect(newState.nodes[0].upgrades).toContain('throughput-1')
       expect(newState.nodes[0].throughput).toBe(250) // 200 base + 50 from upgrade
     })
 
     test('should return false and not deduct credits when insufficient', () => {
-      const state = createInitialGameState()
-      state.player.credits = 50 // upgrade-throughput-1 costs 100
+      const state = createInitialGameState({
+        player: { credits: 25, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
+      // throughput-1 costs 50, player only has 25
       const engine = new GameEngine(state)
 
-      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1')
+      const result = engine.purchaseUpgrade('throughput-1', 'node-1')
 
       expect(result).toBe(false)
-      expect(engine.getState().player.credits).toBe(50) // unchanged
-      expect(engine.getState().nodes[0].upgrades).not.toContain('upgrade-throughput-1')
+      expect(engine.getState().player.credits).toBe(25) // unchanged
+      expect(engine.getState().nodes[0].upgrades).not.toContain('throughput-1')
     })
 
     test('should return false and not double-apply when already owned', () => {
-      const state = createInitialGameState()
+      const state = createInitialGameState({
+        player: { credits: 500, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
       const engine = new GameEngine(state)
 
-      engine.purchaseUpgrade('upgrade-throughput-1', 'node-1') // first purchase: 900¢, throughput 250
-      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1') // second attempt
+      engine.purchaseUpgrade('throughput-1', 'node-1') // first purchase: 450¢, throughput 250
+      const result = engine.purchaseUpgrade('throughput-1', 'node-1') // second attempt
 
       expect(result).toBe(false)
-      expect(engine.getState().player.credits).toBe(900) // only deducted once
-      expect(engine.getState().nodes[0].throughput).toBe(250) // not double-stacked to 300
+      expect(engine.getState().player.credits).toBe(450) // only deducted once
+      expect(engine.getState().nodes[0].throughput).toBe(250) // not double-stacked
+    })
+
+    test('should return false when upgrade prerequisites are not met', () => {
+      const state = createInitialGameState({
+        player: { credits: 500, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
+      const engine = new GameEngine(state)
+
+      // throughput-2 requires throughput-1, which is not purchased
+      const result = engine.purchaseUpgrade('throughput-2', 'node-1')
+
+      expect(result).toBe(false)
+      expect(engine.getState().player.credits).toBe(500) // unchanged
+      expect(engine.getState().nodes[0].upgrades).not.toContain('throughput-2')
     })
   })
 })

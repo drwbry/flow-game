@@ -30,7 +30,10 @@ export default function Home() {
     <main className="min-h-screen bg-[#0a0a0a] text-green-400 p-4 flex flex-col gap-4 max-w-2xl mx-auto">
       <StatusBar credits={state.player.credits} sentiment={state.player.sentiment} />
       <NodeCard node={node} onCool={() => store.coolNode('node-1')} />
-      <ContractList contracts={state.contracts} />
+      <ContractList
+        contracts={state.contracts}
+        onAccept={(id) => store.acceptContract(id)}
+      />
       <UpgradeShop
         upgrades={state.upgrades}
         purchasedUpgradeIds={purchasedUpgradeIds}

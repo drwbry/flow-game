@@ -1,7 +1,9 @@
 import { IContractSystem, Contract } from './types'
 
-const SAFE_DEADLINE_MS = 120 * 1000   // 120 seconds
-const HARD_DEADLINE_MS = 40 * 1000    // 40 seconds
+const OFFER_EXPIRY_MS = 60 * 1000
+const SAFE_DEADLINE_MS = 120 * 1000
+const HARD_DEADLINE_MS = 40 * 1000
+export const ACTIVE_CONTRACT_CAP = 5
 
 export class ContractSystem implements IContractSystem {
   private contracts: Contract[]
@@ -12,15 +14,19 @@ export class ContractSystem implements IContractSystem {
   }
 
   getState() {
-    return {
-      contracts: this.contracts,
-    }
+    return { contracts: this.contracts }
   }
 
   tick(packetsAvailable: number): void {
-    let remainingPackets = packetsAvailable
+    const now = Date.now()
 
-    // First pass: route packets to active contracts sorted by deadline (most urgent first)
+    // Remove expired offers — no penalty, they just disappear from the pool
+    this.contracts = this.contracts.filter(
+      c => !(c.status === 'offered' && c.offerExpiry !== undefined && c.offerExpiry <= now)
+    )
+
+    // Route packets to active contracts sorted by urgency (most urgent first)
+    let remainingPackets = packetsAvailable
     const activeContracts = this.contracts
       .filter(c => c.status === 'active')
       .sort((a, b) => a.deadline - b.deadline)
@@ -33,50 +39,47 @@ export class ContractSystem implements IContractSystem {
       remainingPackets -= packetsToRoute
     }
 
-    // Second pass: enforce deadlines on all contracts (after routing so packets can save a contract)
+    // Enforce deadlines on active contracts (after routing so packets can save a contract)
     for (const contract of this.contracts) {
-      if (contract.deadline <= Date.now()) {
-        if (contract.status === 'active') {
-          contract.status =
-            contract.currentVolume >= contract.targetVolume ? 'completed' : 'failed'
-        }
+      if (contract.status === 'active' && contract.deadline <= now) {
+        contract.status = contract.currentVolume >= contract.targetVolume ? 'completed' : 'failed'
       }
     }
   }
 
-  generateNewContracts(difficulty: 'safe' | 'hard'): Contract[] {
+  generateNewOffers(difficulty: 'safe' | 'hard', count: number): void {
     const now = Date.now()
-    const contracts: Contract[] = []
-    const count = Math.random() < 0.5 ? 2 : 3
+    const targetVolume = difficulty === 'safe' ? 10000 : 15000
+    const reward = difficulty === 'safe' ? 50 : 100
+    const penalty = difficulty === 'safe' ? 10 : 50
 
-    if (difficulty === 'safe') {
-      for (let i = 0; i < count; i++) {
-        contracts.push({
-          id: `contract-${++this.contractCounter}`,
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: now + SAFE_DEADLINE_MS,
-          reward: 50,
-          penalty: 10,
-          status: 'active',
-          difficulty: 'safe',
-        })
-      }
-    } else {
-      for (let i = 0; i < count; i++) {
-        contracts.push({
-          id: `contract-${++this.contractCounter}`,
-          targetVolume: 10000,
-          currentVolume: 0,
-          deadline: now + HARD_DEADLINE_MS,
-          reward: 100,
-          penalty: 50,
-          status: 'active',
-          difficulty: 'hard',
-        })
-      }
+    for (let i = 0; i < count; i++) {
+      this.contracts.push({
+        id: `contract-${++this.contractCounter}`,
+        targetVolume,
+        currentVolume: 0,
+        deadline: 0,
+        offerExpiry: now + OFFER_EXPIRY_MS,
+        reward,
+        penalty,
+        status: 'offered',
+        difficulty,
+      })
     }
+  }
 
-    return contracts
+  acceptContract(contractId: string): boolean {
+    const contract = this.contracts.find(c => c.id === contractId)
+    if (!contract || contract.status !== 'offered') return false
+
+    const activeCount = this.contracts.filter(c => c.status === 'active').length
+    if (activeCount >= ACTIVE_CONTRACT_CAP) return false
+
+    const deadlineDuration = contract.difficulty === 'safe' ? SAFE_DEADLINE_MS : HARD_DEADLINE_MS
+    contract.status = 'active'
+    contract.deadline = Date.now() + deadlineDuration
+    delete contract.offerExpiry
+
+    return true
   }
 }
