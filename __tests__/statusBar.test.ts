@@ -1,11 +1,6 @@
-// Tests for reputation tier boundary logic (mirrors StatusBar.tsx reputationTier)
+// Tests for reputation tier boundary logic
 // Thresholds: 0-30 → TIER 1, 31-69 → TIER 2, 70-100 → TIER 3
-
-function reputationTier(sentiment: number): string {
-  if (sentiment <= 30) return 'TIER 1: SAFE ONLY'
-  if (sentiment < 70) return 'TIER 2: MIXED'
-  return 'TIER 3: HARD ACCESS'
-}
+import { reputationTier } from '../src/lib/reputationTier'
 
 describe('reputationTier', () => {
   it('returns TIER 1 for sentiment 0', () => {

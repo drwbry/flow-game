@@ -1,5 +1,6 @@
 import { Contract } from '@/lib/engine/types'
 import { asciiBar } from '@/lib/asciiBar'
+import { ACTIVE_CONTRACT_CAP } from '@/lib/engine/contractSystem'
 
 interface ContractListProps {
   contracts: Contract[]
@@ -9,13 +10,13 @@ interface ContractListProps {
 export function ContractList({ contracts, onAccept }: ContractListProps) {
   const offered = contracts.filter(c => c.status === 'offered')
   const active = contracts.filter(c => c.status === 'active')
-  const atCap = active.length >= 5
+  const atCap = active.length >= ACTIVE_CONTRACT_CAP
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <div className="font-mono text-xs text-gray-500 mb-2">
-          AVAILABLE CONTRACTS ({offered.length}) — active: {active.length}/5
+          AVAILABLE CONTRACTS ({offered.length}) — active: {active.length}/{ACTIVE_CONTRACT_CAP}
         </div>
         {offered.length === 0 ? (
           <div className="font-mono text-sm text-gray-500 py-2">

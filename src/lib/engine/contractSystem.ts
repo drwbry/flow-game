@@ -3,7 +3,7 @@ import { IContractSystem, Contract } from './types'
 const OFFER_EXPIRY_MS = 60 * 1000
 const SAFE_DEADLINE_MS = 120 * 1000
 const HARD_DEADLINE_MS = 40 * 1000
-const ACTIVE_CONTRACT_CAP = 5
+export const ACTIVE_CONTRACT_CAP = 5
 
 export class ContractSystem implements IContractSystem {
   private contracts: Contract[]
