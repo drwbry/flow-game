@@ -14,7 +14,7 @@ export class Economy implements IEconomy {
   }
 
   settleRevenue(packets: number): void {
-    const creditEarned = packets * 0.001
+    const creditEarned = packets * 0.005
     this.credits += creditEarned
   }
 

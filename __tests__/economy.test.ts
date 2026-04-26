@@ -22,26 +22,26 @@ describe('Economy', () => {
   })
 
   describe('settleRevenue', () => {
-    it('should add credits based on revenue with 0.001 scale factor', () => {
+    it('should add credits based on revenue with 0.005 scale factor', () => {
       economy.settleRevenue(200)
       const state = economy.getState()
-      // 200 * 0.001 = 0.2, so 100 + 0.2 = 100.2
-      expect(state.credits).toBe(100.2)
+      // 200 * 0.005 = 1.0, so 100 + 1.0 = 101.0
+      expect(state.credits).toBe(101.0)
     })
 
     it('should accumulate multiple revenue settlements', () => {
       economy.settleRevenue(200)
       economy.settleRevenue(300)
       const state = economy.getState()
-      // 200 * 0.001 = 0.2, 300 * 0.001 = 0.3, so 100 + 0.2 + 0.3 = 100.5
-      expect(state.credits).toBe(100.5)
+      // 200 * 0.005 = 1.0, 300 * 0.005 = 1.5, so 100 + 1.0 + 1.5 = 102.5
+      expect(state.credits).toBe(102.5)
     })
 
     it('should handle large packet volumes', () => {
       economy.settleRevenue(1000000)
       const state = economy.getState()
-      // 1000000 * 0.001 = 1000, so 100 + 1000 = 1100
-      expect(state.credits).toBe(1100)
+      // 1000000 * 0.005 = 5000, so 100 + 5000 = 5100
+      expect(state.credits).toBe(5100)
     })
   })
 

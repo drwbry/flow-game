@@ -22,7 +22,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
   function handleCool() {
     if (intervalRef.current) clearInterval(intervalRef.current)
     onCool()
-    setCooldownRemaining(5000)
+    setCooldownRemaining(1500)
     intervalRef.current = setInterval(() => {
       setCooldownRemaining(prev => {
         if (prev <= 100) {
@@ -49,7 +49,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
         }
       </div>
       <div className="mb-1 text-green-400">
-        THROUGHPUT {asciiBar(effective, node.throughput)} {effective} pps
+        THROUGHPUT {asciiBar(effective, node.throughput)} {effective} / {node.throughput} pps
       </div>
       <div className="mb-3 text-amber-400">
         HEAT {asciiBar(node.heat, 100)} {node.heat}°
@@ -59,7 +59,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
           disabled
           className="border border-gray-600 px-3 py-1 text-gray-600 cursor-not-allowed"
         >
-          [ COOL ] {asciiBar(cooldownRemaining, 5000)}
+          [ COOL ] {asciiBar(cooldownRemaining, 1500)}
         </button>
       ) : (
         <button

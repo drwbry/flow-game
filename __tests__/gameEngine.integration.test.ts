@@ -125,19 +125,19 @@ describe('GameEngine Integration Tests', () => {
   })
 
   describe('coolNode', () => {
-    test('should reduce node heat by 30', () => {
+    test('should reduce node heat by 10', () => {
       const state = createInitialGameState()
       state.nodes[0].heat = 60
       const engine = new GameEngine(state)
 
       engine.coolNode('node-1')
 
-      expect(engine.getState().nodes[0].heat).toBe(30)
+      expect(engine.getState().nodes[0].heat).toBe(50)
     })
 
-    test('should floor heat at 0 when heat is less than 30', () => {
+    test('should floor heat at 0 when heat is less than 10', () => {
       const state = createInitialGameState()
-      state.nodes[0].heat = 10
+      state.nodes[0].heat = 5
       const engine = new GameEngine(state)
 
       engine.coolNode('node-1')

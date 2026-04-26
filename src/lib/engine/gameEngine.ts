@@ -63,7 +63,7 @@ export class GameEngine implements IGameEngine {
     const nodes = this.nodeManager.getState().nodes
     const node = nodes.find(n => n.id === nodeId)
     if (!node) return
-    node.heat = Math.max(0, node.heat - 30)
+    node.heat = Math.max(0, node.heat - 10)
   }
 
   purchaseUpgrade(upgradeId: string, nodeId: string): boolean {
