@@ -204,4 +204,76 @@ describe('GameEngine Integration Tests', () => {
       expect(engine.getState().nodes[0].upgrades).not.toContain('throughput-2')
     })
   })
+
+  describe('completeContract', () => {
+    test('awards reward and sentiment when manually completing a fulfilled contract', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 0, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 100, currentVolume: 100, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      const result = engine.completeContract('c1')
+
+      expect(result).toBe(true)
+      const newState = engine.getState()
+      expect(newState.player.credits).toBe(50)           // reward awarded
+      expect(newState.player.sentiment).toBe(55)          // +5 rep (repReward, streak=0)
+      expect(newState.contracts.find(c => c.id === 'c1')!.status).toBe('completed')
+    })
+
+    test('returns false when contract is not fulfilled', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 0, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      const result = engine.completeContract('c1')
+
+      expect(result).toBe(false)
+      expect(engine.getState().player.credits).toBe(0)
+    })
+  })
+
+  describe('cancelContract', () => {
+    test('applies partial credit penalty and lighter rep penalty on cancel', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 100, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 60000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      const result = engine.cancelContract('c1')
+
+      expect(result).toBe(true)
+      const newState = engine.getState()
+      expect(newState.player.credits).toBe(97)            // 100 - ceil(10 * 0.25) = 100 - 3 = 97
+      expect(newState.player.sentiment).toBe(46)          // 50 - ceil(8 * 0.5) = 50 - 4 = 46
+      expect(newState.contracts.find(c => c.id === 'c1')!.status).toBe('failed')
+    })
+
+    test('returns false when timeRemaining <= 30s', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 100, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 20000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      expect(engine.cancelContract('c1')).toBe(false)
+      expect(engine.getState().player.credits).toBe(100)
+    })
+  })
 })

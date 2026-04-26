@@ -33,6 +33,8 @@ export default function Home() {
       <ContractList
         contracts={state.contracts}
         onAccept={(id) => store.acceptContract(id)}
+        onComplete={(id) => store.completeContract(id)}
+        onCancel={(id) => store.cancelContract(id)}
       />
       <UpgradeShop
         upgrades={state.upgrades}

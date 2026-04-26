@@ -5,15 +5,18 @@ import { ACTIVE_CONTRACT_CAP } from '@/lib/engine/contractSystem'
 interface ContractListProps {
   contracts: Contract[]
   onAccept: (contractId: string) => void
+  onComplete: (contractId: string) => void
+  onCancel: (contractId: string) => void
 }
 
-export function ContractList({ contracts, onAccept }: ContractListProps) {
+export function ContractList({ contracts, onAccept, onComplete, onCancel }: ContractListProps) {
   const offered = contracts.filter(c => c.status === 'offered')
   const active = contracts.filter(c => c.status === 'active')
   const atCap = active.length >= ACTIVE_CONTRACT_CAP
 
   return (
     <div className="flex flex-col gap-4">
+      {/* AVAILABLE section */}
       <div>
         <div className="font-mono text-xs text-gray-500 mb-2">
           AVAILABLE CONTRACTS ({offered.length}) — active: {active.length}/{ACTIVE_CONTRACT_CAP}
@@ -44,7 +47,16 @@ export function ContractList({ contracts, onAccept }: ContractListProps) {
                     </span>
                   </div>
                   <div className="mb-1 text-xs opacity-75">
-                    target: {contract.targetVolume} pkts | reward: {contract.reward}¢ | penalty: {contract.penalty}¢
+                    target: {contract.targetVolume} pkts
+                  </div>
+                  <div className="mb-1 text-xs">
+                    <span className="text-green-400">+{contract.reward}¢</span>
+                    <span className="text-gray-600"> / </span>
+                    <span className="text-red-400">-{contract.penalty}¢</span>
+                    <span className="text-gray-600 mx-2">|</span>
+                    <span className="text-green-400">+{contract.repReward} rep</span>
+                    <span className="text-gray-600"> / </span>
+                    <span className="text-red-400">-{contract.repPenalty} rep</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs opacity-60">expires in {expiresIn}s</span>
@@ -71,6 +83,7 @@ export function ContractList({ contracts, onAccept }: ContractListProps) {
         )}
       </div>
 
+      {/* ACTIVE section */}
       <div>
         <div className="font-mono text-xs text-gray-500 mb-2">ACTIVE CONTRACTS</div>
         {active.length === 0 ? (
@@ -85,6 +98,7 @@ export function ContractList({ contracts, onAccept }: ContractListProps) {
               const fulfilled = contract.currentVolume >= contract.targetVolume
               const fullRed = urgent && !fulfilled
               const timerRed = urgent && fulfilled
+              const canCancel = !fulfilled && timeRemaining > 30
 
               return (
                 <div
@@ -110,8 +124,32 @@ export function ContractList({ contracts, onAccept }: ContractListProps) {
                   <div className="mb-1">
                     {asciiBar(contract.currentVolume, contract.targetVolume)} {contract.currentVolume} / {contract.targetVolume}
                   </div>
-                  <div className="text-xs opacity-75">
-                    reward: {contract.reward}¢&nbsp;&nbsp;penalty: {contract.penalty}¢
+                  <div className="mb-2 text-xs opacity-75">
+                    <span className="text-green-400">+{contract.reward}¢</span>
+                    <span className="opacity-50"> / </span>
+                    <span className="text-red-400">-{contract.penalty}¢</span>
+                    <span className="opacity-50 mx-2">|</span>
+                    <span className="text-green-400">+{contract.repReward} rep</span>
+                    <span className="opacity-50"> / </span>
+                    <span className="text-red-400">-{contract.repPenalty} rep</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {fulfilled && (
+                      <button
+                        onClick={() => onComplete(contract.id)}
+                        className="border border-green-400 text-green-400 px-2 text-xs hover:bg-green-400 hover:text-black"
+                      >
+                        [COMPLETE]
+                      </button>
+                    )}
+                    {canCancel && (
+                      <button
+                        onClick={() => onCancel(contract.id)}
+                        className="border border-red-800 text-red-800 px-2 text-xs hover:bg-red-800 hover:text-white"
+                      >
+                        [CANCEL]
+                      </button>
+                    )}
                   </div>
                 </div>
               )

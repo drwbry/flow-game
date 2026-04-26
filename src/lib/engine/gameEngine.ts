@@ -5,8 +5,8 @@ import { UpgradeSystem } from './upgradeSystem'
 import { SentimentSystem } from './sentimentSystem'
 import { ContractSystem } from './contractSystem'
 
-const COOL_HEAT_REDUCTION = 10
 const OFFER_POOL_TARGET = 3
+const COOL_HEAT_REDUCTION = 10
 
 export class GameEngine implements IGameEngine {
   private state: GameState
@@ -89,6 +89,30 @@ export class GameEngine implements IGameEngine {
     return this.contractSystem.acceptContract(contractId)
   }
 
+  completeContract(contractId: string): boolean {
+    const contract = this.contractSystem.getState().contracts.find(c => c.id === contractId)
+    if (!contract) return false
+    const success = this.contractSystem.completeContract(contractId)
+    if (success) {
+      this.economy.addCredits(contract.reward)
+      this.sentimentSystem.recordSuccess(contract.repReward)
+      this.state = this.getState()
+    }
+    return success
+  }
+
+  cancelContract(contractId: string): boolean {
+    const contract = this.contractSystem.getState().contracts.find(c => c.id === contractId)
+    if (!contract) return false
+    const success = this.contractSystem.cancelContract(contractId)
+    if (success) {
+      this.economy.applyPenalty(Math.ceil(contract.penalty * 0.25))
+      this.sentimentSystem.recordFailure(Math.ceil(contract.repPenalty * 0.5))
+      this.state = this.getState()
+    }
+    return success
+  }
+
   tick(): void {
     // Step 1: Update node heat and status
     const nodes = this.state.nodes
@@ -107,7 +131,7 @@ export class GameEngine implements IGameEngine {
     this.contractSystem.tick(totalPackets)
     const contractsAfter = this.contractSystem.getState().contracts
 
-    // Step 4: Emit events for contracts that were active and just settled
+    // Step 4: Emit events for contracts that were active and just settled via deadline
     for (const before of contractsBefore) {
       if (before.status !== 'active') continue
       const after = contractsAfter.find(c => c.id === before.id)
@@ -115,13 +139,13 @@ export class GameEngine implements IGameEngine {
 
       if (after.status === 'completed') {
         this.economy.addCredits(after.reward)
-        this.sentimentSystem.recordSuccess()
+        this.sentimentSystem.recordSuccess(after.repReward)
         if (this.onContractSuccess) this.onContractSuccess({ ...after })
       }
 
       if (after.status === 'failed') {
         this.economy.applyPenalty(after.penalty)
-        this.sentimentSystem.recordFailure()
+        this.sentimentSystem.recordFailure(after.repPenalty)
         if (this.onContractFailure) this.onContractFailure({ ...after })
       }
     }
