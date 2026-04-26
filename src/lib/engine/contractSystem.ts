@@ -85,6 +85,10 @@ export class ContractSystem implements IContractSystem {
     if (!contract || contract.status !== 'active') return false
     const timeRemaining = (contract.deadline - Date.now()) / 1000
     if (timeRemaining <= 30) return false
+    // 'failed' (not a distinct 'cancelled') lets the engine detect the transition
+    // and apply the partial penalty — the engine's cancelContract wrapper handles
+    // credits and rep; tick() will not re-fire a penalty since it only fires once
+    // per active→settled transition.
     contract.status = 'failed'
     return true
   }

@@ -17,6 +17,8 @@ describe('ContractSystem', () => {
       expect(contracts[0].targetVolume).toBe(10000)
       expect(contracts[0].offerExpiry).toBeGreaterThan(Date.now())
       expect(contracts[0].deadline).toBe(0)
+      expect(contracts[0].repReward).toBe(5)
+      expect(contracts[0].repPenalty).toBe(8)
     })
 
     it('generates hard offers with correct values', () => {
@@ -28,6 +30,8 @@ describe('ContractSystem', () => {
       expect(contracts[0].reward).toBe(100)
       expect(contracts[0].penalty).toBe(50)
       expect(contracts[0].targetVolume).toBe(15000)
+      expect(contracts[0].repReward).toBe(10)
+      expect(contracts[0].repPenalty).toBe(15)
     })
 
     it('assigns unique IDs to each offer', () => {
