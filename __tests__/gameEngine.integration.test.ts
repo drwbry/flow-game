@@ -125,19 +125,19 @@ describe('GameEngine Integration Tests', () => {
   })
 
   describe('coolNode', () => {
-    test('should reduce node heat by 30', () => {
+    test('should reduce node heat by 10', () => {
       const state = createInitialGameState()
       state.nodes[0].heat = 60
       const engine = new GameEngine(state)
 
       engine.coolNode('node-1')
 
-      expect(engine.getState().nodes[0].heat).toBe(30)
+      expect(engine.getState().nodes[0].heat).toBe(50)
     })
 
-    test('should floor heat at 0 when heat is less than 30', () => {
+    test('should floor heat at 0 when heat is less than 10', () => {
       const state = createInitialGameState()
-      state.nodes[0].heat = 10
+      state.nodes[0].heat = 5
       const engine = new GameEngine(state)
 
       engine.coolNode('node-1')
@@ -148,41 +148,132 @@ describe('GameEngine Integration Tests', () => {
 
   describe('purchaseUpgrade', () => {
     test('should deduct credits and apply upgrade stats to node', () => {
-      const state = createInitialGameState()
-      // Default credits: 1000. upgrade-throughput-1 costs 100, adds +50 throughput.
+      const state = createInitialGameState({
+        player: { credits: 500, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
       const engine = new GameEngine(state)
 
-      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1')
+      const result = engine.purchaseUpgrade('throughput-1', 'node-1')
 
       expect(result).toBe(true)
       const newState = engine.getState()
-      expect(newState.player.credits).toBe(900) // 1000 − 100
-      expect(newState.nodes[0].upgrades).toContain('upgrade-throughput-1')
+      expect(newState.player.credits).toBe(450) // 500 − 50
+      expect(newState.nodes[0].upgrades).toContain('throughput-1')
       expect(newState.nodes[0].throughput).toBe(250) // 200 base + 50 from upgrade
     })
 
     test('should return false and not deduct credits when insufficient', () => {
-      const state = createInitialGameState()
-      state.player.credits = 50 // upgrade-throughput-1 costs 100
+      const state = createInitialGameState({
+        player: { credits: 25, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
+      // throughput-1 costs 50, player only has 25
       const engine = new GameEngine(state)
 
-      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1')
+      const result = engine.purchaseUpgrade('throughput-1', 'node-1')
 
       expect(result).toBe(false)
-      expect(engine.getState().player.credits).toBe(50) // unchanged
-      expect(engine.getState().nodes[0].upgrades).not.toContain('upgrade-throughput-1')
+      expect(engine.getState().player.credits).toBe(25) // unchanged
+      expect(engine.getState().nodes[0].upgrades).not.toContain('throughput-1')
     })
 
     test('should return false and not double-apply when already owned', () => {
-      const state = createInitialGameState()
+      const state = createInitialGameState({
+        player: { credits: 500, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
       const engine = new GameEngine(state)
 
-      engine.purchaseUpgrade('upgrade-throughput-1', 'node-1') // first purchase: 900¢, throughput 250
-      const result = engine.purchaseUpgrade('upgrade-throughput-1', 'node-1') // second attempt
+      engine.purchaseUpgrade('throughput-1', 'node-1') // first purchase: 450¢, throughput 250
+      const result = engine.purchaseUpgrade('throughput-1', 'node-1') // second attempt
 
       expect(result).toBe(false)
-      expect(engine.getState().player.credits).toBe(900) // only deducted once
-      expect(engine.getState().nodes[0].throughput).toBe(250) // not double-stacked to 300
+      expect(engine.getState().player.credits).toBe(450) // only deducted once
+      expect(engine.getState().nodes[0].throughput).toBe(250) // not double-stacked
+    })
+
+    test('should return false when upgrade prerequisites are not met', () => {
+      const state = createInitialGameState({
+        player: { credits: 500, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+      })
+      const engine = new GameEngine(state)
+
+      // throughput-2 requires throughput-1, which is not purchased
+      const result = engine.purchaseUpgrade('throughput-2', 'node-1')
+
+      expect(result).toBe(false)
+      expect(engine.getState().player.credits).toBe(500) // unchanged
+      expect(engine.getState().nodes[0].upgrades).not.toContain('throughput-2')
+    })
+  })
+
+  describe('completeContract', () => {
+    test('awards reward and sentiment when manually completing a fulfilled contract', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 0, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 100, currentVolume: 100, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      const result = engine.completeContract('c1')
+
+      expect(result).toBe(true)
+      const newState = engine.getState()
+      expect(newState.player.credits).toBe(50)           // reward awarded
+      expect(newState.player.sentiment).toBe(55)          // +5 rep (repReward, streak=0)
+      expect(newState.contracts.find(c => c.id === 'c1')!.status).toBe('completed')
+    })
+
+    test('returns false when contract is not fulfilled', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 0, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      const result = engine.completeContract('c1')
+
+      expect(result).toBe(false)
+      expect(engine.getState().player.credits).toBe(0)
+    })
+  })
+
+  describe('cancelContract', () => {
+    test('applies partial credit penalty and lighter rep penalty on cancel', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 100, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 60000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      const result = engine.cancelContract('c1')
+
+      expect(result).toBe(true)
+      const newState = engine.getState()
+      expect(newState.player.credits).toBe(97)            // 100 - ceil(10 * 0.25) = 100 - 3 = 97
+      expect(newState.player.sentiment).toBe(46)          // 50 - ceil(8 * 0.5) = 50 - 4 = 46
+      expect(newState.contracts.find(c => c.id === 'c1')!.status).toBe('failed')
+    })
+
+    test('returns false when timeRemaining <= 30s', () => {
+      const now = Date.now()
+      const state = createInitialGameState({
+        player: { credits: 100, totalPacketsProcessed: 0, sentiment: 50, consecutiveSuccesses: 0 },
+        contracts: [
+          { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 20000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        ],
+      })
+      const engine = new GameEngine(state)
+
+      expect(engine.cancelContract('c1')).toBe(false)
+      expect(engine.getState().player.credits).toBe(100)
     })
   })
 })

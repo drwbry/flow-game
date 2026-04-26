@@ -41,12 +41,24 @@ describe('NodeManager', () => {
     it('should not go below 0', () => {
       let nodes = nodeManager.getState().nodes
       nodes[0].heat = 5
-      // Simulate max cooling that exceeds heat
-      nodes[0].efficiency = 1.0 // max cooling (coolingCapacity = 1.0 * 50 = 50, heatDelta = 20 - 50 = -30)
+      // With 80% cooling cap: coolingCapacity = min(1.0*50, 20*0.8) = 16, heatDelta = 4, newHeat = 9 ≥ 0
+      nodes[0].efficiency = 1.0
       nodeManager.tick(nodes)
 
       nodes = nodeManager.getState().nodes
       expect(nodes[0].heat).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should always generate some heat even at max efficiency (80% cap)', () => {
+      let nodes = nodeManager.getState().nodes
+      nodes[0].heat = 0
+      nodes[0].efficiency = 1.0 // max efficiency — without cap this would cancel heat entirely
+      nodeManager.tick(nodes)
+
+      nodes = nodeManager.getState().nodes
+      // Without cap: heatDelta = 200*0.1 - 1.0*50 = -30 → clamped to 0 (heat stays 0)
+      // With 80% cap: coolingCapacity = min(50, 20*0.8=16) → heatDelta = 4 → heat = 4
+      expect(nodes[0].heat).toBeGreaterThan(0)
     })
 
     it('should mark node critical when heat >= 80', () => {

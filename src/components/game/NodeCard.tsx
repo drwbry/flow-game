@@ -4,6 +4,8 @@ import { Node } from '@/lib/engine/types'
 import { asciiBar } from '@/lib/asciiBar'
 import { effectiveThroughput } from '@/lib/engine/nodeManager'
 
+const COOL_COOLDOWN_MS = 1500
+
 interface NodeCardProps {
   node: Node
   onCool: () => void
@@ -22,7 +24,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
   function handleCool() {
     if (intervalRef.current) clearInterval(intervalRef.current)
     onCool()
-    setCooldownRemaining(5000)
+    setCooldownRemaining(COOL_COOLDOWN_MS)
     intervalRef.current = setInterval(() => {
       setCooldownRemaining(prev => {
         if (prev <= 100) {
@@ -49,7 +51,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
         }
       </div>
       <div className="mb-1 text-green-400">
-        THROUGHPUT {asciiBar(effective, node.throughput)} {effective} pps
+        THROUGHPUT {asciiBar(effective, node.throughput)} {effective} / {node.throughput} pps
       </div>
       <div className="mb-3 text-amber-400">
         HEAT {asciiBar(node.heat, 100)} {node.heat}°
@@ -59,7 +61,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
           disabled
           className="border border-gray-600 px-3 py-1 text-gray-600 cursor-not-allowed"
         >
-          [ COOL ] {asciiBar(cooldownRemaining, 5000)}
+          [ COOL ] {asciiBar(cooldownRemaining, COOL_COOLDOWN_MS)}
         </button>
       ) : (
         <button

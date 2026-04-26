@@ -7,6 +7,10 @@ interface UpgradeShopProps {
   onPurchase: (upgradeId: string) => void
 }
 
+function isUnlocked(upgrade: Upgrade, purchasedIds: string[]): boolean {
+  return upgrade.requires.every(id => purchasedIds.includes(id))
+}
+
 function effectDescription(effects: Upgrade['effects']): string {
   const parts: string[] = []
   if (effects.throughput !== undefined) parts.push(`+${effects.throughput} throughput`)
@@ -15,9 +19,11 @@ function effectDescription(effects: Upgrade['effects']): string {
 }
 
 export function UpgradeShop({ upgrades, purchasedUpgradeIds, credits, onPurchase }: UpgradeShopProps) {
+  const visibleUpgrades = upgrades.filter(u => isUnlocked(u, purchasedUpgradeIds))
+
   return (
     <div className="font-mono text-sm">
-      {upgrades.map(upgrade => {
+      {visibleUpgrades.map(upgrade => {
         const owned = purchasedUpgradeIds.includes(upgrade.id)
         const canAfford = credits >= upgrade.cost
 
