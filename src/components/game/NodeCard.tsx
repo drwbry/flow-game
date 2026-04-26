@@ -4,6 +4,8 @@ import { Node } from '@/lib/engine/types'
 import { asciiBar } from '@/lib/asciiBar'
 import { effectiveThroughput } from '@/lib/engine/nodeManager'
 
+const COOL_COOLDOWN_MS = 1500
+
 interface NodeCardProps {
   node: Node
   onCool: () => void
@@ -22,7 +24,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
   function handleCool() {
     if (intervalRef.current) clearInterval(intervalRef.current)
     onCool()
-    setCooldownRemaining(1500)
+    setCooldownRemaining(COOL_COOLDOWN_MS)
     intervalRef.current = setInterval(() => {
       setCooldownRemaining(prev => {
         if (prev <= 100) {
@@ -59,7 +61,7 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
           disabled
           className="border border-gray-600 px-3 py-1 text-gray-600 cursor-not-allowed"
         >
-          [ COOL ] {asciiBar(cooldownRemaining, 1500)}
+          [ COOL ] {asciiBar(cooldownRemaining, COOL_COOLDOWN_MS)}
         </button>
       ) : (
         <button

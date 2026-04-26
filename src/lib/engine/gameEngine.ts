@@ -5,6 +5,7 @@ import { UpgradeSystem } from './upgradeSystem'
 import { SentimentSystem } from './sentimentSystem'
 import { ContractSystem } from './contractSystem'
 
+const COOL_HEAT_REDUCTION = 10
 const OFFER_POOL_TARGET = 3
 
 export class GameEngine implements IGameEngine {
@@ -63,7 +64,7 @@ export class GameEngine implements IGameEngine {
     const nodes = this.nodeManager.getState().nodes
     const node = nodes.find(n => n.id === nodeId)
     if (!node) return
-    node.heat = Math.max(0, node.heat - 10)
+    node.heat = Math.max(0, node.heat - COOL_HEAT_REDUCTION)
   }
 
   purchaseUpgrade(upgradeId: string, nodeId: string): boolean {
