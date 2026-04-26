@@ -153,8 +153,8 @@ describe('ContractSystem', () => {
     it('routes packets to multiple active contracts sorted by urgency', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'far', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
-        { id: 'urgent', targetVolume: 10000, currentVolume: 0, deadline: now + 5000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'far', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        { id: 'urgent', targetVolume: 10000, currentVolume: 0, deadline: now + 5000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
       cs.tick(5000)
       const urgent = cs.getState().contracts.find(c => c.id === 'urgent')!
@@ -165,7 +165,7 @@ describe('ContractSystem', () => {
     it('does not assign more volume to a contract than its targetVolume', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'c1', targetVolume: 1000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'c1', targetVolume: 1000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
 
       cs.tick(9999) // far more packets than needed
@@ -177,8 +177,8 @@ describe('ContractSystem', () => {
     it('does not error when more packets available than all contracts need combined', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'c1', targetVolume: 100, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
-        { id: 'c2', targetVolume: 100, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'c1', targetVolume: 100, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        { id: 'c2', targetVolume: 100, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
 
       expect(() => cs.tick(99999)).not.toThrow()
@@ -192,7 +192,7 @@ describe('ContractSystem', () => {
     it('marks active contract as completed when fulfilled at deadline', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'done', targetVolume: 100, currentVolume: 100, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'done', targetVolume: 100, currentVolume: 100, deadline: now - 1, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
       cs.tick(0)
       expect(cs.getState().contracts.find(c => c.id === 'done')!.status).toBe('completed')
@@ -201,7 +201,7 @@ describe('ContractSystem', () => {
     it('marks active contract as failed when unfulfilled at deadline', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'failed', targetVolume: 10000, currentVolume: 0, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'failed', targetVolume: 10000, currentVolume: 0, deadline: now - 1, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
       cs.tick(0)
       expect(cs.getState().contracts.find(c => c.id === 'failed')!.status).toBe('failed')
@@ -210,7 +210,7 @@ describe('ContractSystem', () => {
     it('does not re-route packets to completed contracts on subsequent ticks', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'done', targetVolume: 100, currentVolume: 100, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'done', targetVolume: 100, currentVolume: 100, deadline: now - 1, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
 
       cs.tick(0) // first tick: completes the contract
@@ -224,7 +224,7 @@ describe('ContractSystem', () => {
     it('does not re-route packets to failed contracts on subsequent ticks', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'failed', targetVolume: 10000, currentVolume: 0, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'failed', targetVolume: 10000, currentVolume: 0, deadline: now - 1, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
 
       cs.tick(0) // first tick: fails the contract
@@ -238,7 +238,7 @@ describe('ContractSystem', () => {
     it('handles deadline exactly at now without error', () => {
       const now = Date.now()
       const cs = new ContractSystem([
-        { id: 'boundary', targetVolume: 100, currentVolume: 0, deadline: now, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'boundary', targetVolume: 100, currentVolume: 0, deadline: now, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
 
       expect(() => cs.tick(0)).not.toThrow()
@@ -253,10 +253,10 @@ describe('ContractSystem', () => {
       // 'fail' has a past deadline and large targetVolume — it will absorb all routed packets
       // but still fail (5000 < 10000). 'active' has a future deadline so it doesn't resolve.
       const cs = new ContractSystem([
-        { id: 'offer', targetVolume: 10000, currentVolume: 0, deadline: 0, offerExpiry: now + 60000, reward: 50, penalty: 10, status: 'offered', difficulty: 'safe' },
-        { id: 'active', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
-        { id: 'completed', targetVolume: 100, currentVolume: 100, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
-        { id: 'fail', targetVolume: 10000, currentVolume: 0, deadline: now - 1, reward: 50, penalty: 10, status: 'active', difficulty: 'safe' },
+        { id: 'offer', targetVolume: 10000, currentVolume: 0, deadline: 0, offerExpiry: now + 60000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'offered', difficulty: 'safe' },
+        { id: 'active', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        { id: 'completed', targetVolume: 100, currentVolume: 100, deadline: now - 1, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+        { id: 'fail', targetVolume: 10000, currentVolume: 0, deadline: now - 1, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
       ])
 
       cs.tick(5000)
@@ -267,6 +267,72 @@ describe('ContractSystem', () => {
       expect(contracts.find(c => c.id === 'active')!.status).toBe('active') // still running
       expect(contracts.find(c => c.id === 'completed')!.status).toBe('completed')
       expect(contracts.find(c => c.id === 'fail')!.status).toBe('failed')
+    })
+  })
+
+  describe('completeContract', () => {
+    it('completes a fulfilled active contract', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'c1', targetVolume: 100, currentVolume: 100, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+      ])
+      expect(cs.completeContract('c1')).toBe(true)
+      expect(cs.getState().contracts.find(c => c.id === 'c1')!.status).toBe('completed')
+    })
+
+    it('returns false when contract is not fulfilled', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+      ])
+      expect(cs.completeContract('c1')).toBe(false)
+      expect(cs.getState().contracts.find(c => c.id === 'c1')!.status).toBe('active')
+    })
+
+    it('returns false when contract is not active', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'c1', targetVolume: 100, currentVolume: 100, deadline: now + 120000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'offered', difficulty: 'safe' },
+      ])
+      expect(cs.completeContract('c1')).toBe(false)
+    })
+
+    it('returns false for unknown contract ID', () => {
+      const cs = new ContractSystem()
+      expect(cs.completeContract('nonexistent')).toBe(false)
+    })
+  })
+
+  describe('cancelContract', () => {
+    it('cancels an active contract with >30s remaining', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 60000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+      ])
+      expect(cs.cancelContract('c1')).toBe(true)
+      expect(cs.getState().contracts.find(c => c.id === 'c1')!.status).toBe('failed')
+    })
+
+    it('returns false when timeRemaining <= 30s', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 20000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'active', difficulty: 'safe' },
+      ])
+      expect(cs.cancelContract('c1')).toBe(false)
+      expect(cs.getState().contracts.find(c => c.id === 'c1')!.status).toBe('active')
+    })
+
+    it('returns false when contract is not active', () => {
+      const now = Date.now()
+      const cs = new ContractSystem([
+        { id: 'c1', targetVolume: 10000, currentVolume: 0, deadline: now + 60000, reward: 50, penalty: 10, repReward: 5, repPenalty: 8, status: 'offered', difficulty: 'safe' },
+      ])
+      expect(cs.cancelContract('c1')).toBe(false)
+    })
+
+    it('returns false for unknown contract ID', () => {
+      const cs = new ContractSystem()
+      expect(cs.cancelContract('nonexistent')).toBe(false)
     })
   })
 })

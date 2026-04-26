@@ -52,6 +52,8 @@ export class ContractSystem implements IContractSystem {
     const targetVolume = difficulty === 'safe' ? 10000 : 15000
     const reward = difficulty === 'safe' ? 50 : 100
     const penalty = difficulty === 'safe' ? 10 : 50
+    const repReward = difficulty === 'safe' ? 5 : 10
+    const repPenalty = difficulty === 'safe' ? 8 : 15
 
     for (let i = 0; i < count; i++) {
       this.contracts.push({
@@ -62,10 +64,29 @@ export class ContractSystem implements IContractSystem {
         offerExpiry: now + OFFER_EXPIRY_MS,
         reward,
         penalty,
+        repReward,
+        repPenalty,
         status: 'offered',
         difficulty,
       })
     }
+  }
+
+  completeContract(contractId: string): boolean {
+    const contract = this.contracts.find(c => c.id === contractId)
+    if (!contract || contract.status !== 'active') return false
+    if (contract.currentVolume < contract.targetVolume) return false
+    contract.status = 'completed'
+    return true
+  }
+
+  cancelContract(contractId: string): boolean {
+    const contract = this.contracts.find(c => c.id === contractId)
+    if (!contract || contract.status !== 'active') return false
+    const timeRemaining = (contract.deadline - Date.now()) / 1000
+    if (timeRemaining <= 30) return false
+    contract.status = 'failed'
+    return true
   }
 
   acceptContract(contractId: string): boolean {

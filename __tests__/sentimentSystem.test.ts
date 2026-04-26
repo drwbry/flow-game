@@ -219,6 +219,32 @@ describe('SentimentSystem', () => {
     })
   })
 
+  describe('recordSuccess with custom amount', () => {
+    it('should use provided base amount instead of default 5', () => {
+      sentimentSystem.recordSuccess(10) // streak=0 → +10
+      expect(sentimentSystem.getState().sentiment).toBe(60)
+    })
+
+    it('should still add streak bonus on top of custom amount', () => {
+      sentimentSystem.recordSuccess(10) // streak=0 → +10, total 60
+      sentimentSystem.recordSuccess(10) // streak=1 → +11, total 71
+      expect(sentimentSystem.getState().sentiment).toBe(71)
+    })
+  })
+
+  describe('recordFailure with custom amount', () => {
+    it('should use provided amount instead of default 15', () => {
+      sentimentSystem.recordFailure(8)
+      expect(sentimentSystem.getState().sentiment).toBe(42) // 50 - 8
+    })
+
+    it('should clamp at 0 with custom amount', () => {
+      const system = new SentimentSystem(5)
+      system.recordFailure(8)
+      expect(system.getState().sentiment).toBe(0)
+    })
+  })
+
   describe('integration scenarios', () => {
     it('should handle mixed successes and failures', () => {
       sentimentSystem.recordSuccess()

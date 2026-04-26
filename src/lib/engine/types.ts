@@ -18,6 +18,8 @@ export interface Contract {
   offerExpiry?: number    // timestamp when offer disappears if not accepted (offered status only)
   reward: number // credits
   penalty: number // credits
+  repReward: number    // sentiment gained on completion or manual complete
+  repPenalty: number   // sentiment lost on failure; cancel applies half this
   status: 'offered' | 'active' | 'completed' | 'failed'
   difficulty: 'safe' | 'hard'
 }
@@ -76,8 +78,8 @@ export interface IUpgradeSystem {
 
 export interface ISentimentSystem {
   getState(): { sentiment: number; consecutiveSuccesses: number }
-  recordSuccess(): void
-  recordFailure(): void
+  recordSuccess(amount?: number): void
+  recordFailure(amount?: number): void
   getContractDifficultyWeights(): { safe: number; hard: number }
 }
 
@@ -86,6 +88,8 @@ export interface IContractSystem {
   tick(packetsAvailable: number): void
   generateNewOffers(difficulty: 'safe' | 'hard', count: number): void
   acceptContract(contractId: string): boolean
+  completeContract(contractId: string): boolean
+  cancelContract(contractId: string): boolean
 }
 
 export interface IGameEngine {
@@ -94,4 +98,6 @@ export interface IGameEngine {
   coolNode(nodeId: string): void
   purchaseUpgrade(upgradeId: string, nodeId: string): boolean
   acceptContract(contractId: string): boolean
+  completeContract(contractId: string): boolean
+  cancelContract(contractId: string): boolean
 }
