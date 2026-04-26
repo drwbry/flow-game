@@ -4,9 +4,9 @@ export class SentimentSystem implements ISentimentSystem {
   private sentiment: number
   private consecutiveSuccesses: number
 
-  constructor(initialSentiment: number = 50) {
+  constructor(initialSentiment: number = 50, initialConsecutiveSuccesses: number = 0) {
     this.sentiment = initialSentiment
-    this.consecutiveSuccesses = 0
+    this.consecutiveSuccesses = initialConsecutiveSuccesses
   }
 
   getState() {

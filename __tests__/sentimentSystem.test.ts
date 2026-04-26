@@ -23,6 +23,11 @@ describe('SentimentSystem', () => {
       const state = custom.getState()
       expect(state.sentiment).toBe(75)
     })
+
+    it('should accept custom initial consecutiveSuccesses', () => {
+      const system = new SentimentSystem(50, 3)
+      expect(system.getState().consecutiveSuccesses).toBe(3)
+    })
   })
 
   describe('state getter', () => {

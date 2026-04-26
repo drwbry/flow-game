@@ -24,7 +24,10 @@ export class GameEngine implements IGameEngine {
     this.nodeManager = new NodeManager(this.state.nodes)
     this.economy = new Economy(this.state.player.credits)
     this.upgradeSystem = new UpgradeSystem(this.state.upgrades)
-    this.sentimentSystem = new SentimentSystem(this.state.player.sentiment)
+    this.sentimentSystem = new SentimentSystem(
+      this.state.player.sentiment,
+      this.state.player.consecutiveSuccesses
+    )
     this.contractSystem = new ContractSystem(this.state.contracts)
   }
 
