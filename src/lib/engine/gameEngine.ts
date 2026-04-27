@@ -5,6 +5,9 @@ import { UpgradeSystem } from './upgradeSystem'
 import { SentimentSystem } from './sentimentSystem'
 import { ContractSystem } from './contractSystem'
 
+const OFFER_POOL_TARGET = 3
+const COOL_HEAT_REDUCTION = 10
+
 export class GameEngine implements IGameEngine {
   private state: GameState
   private nodeManager: NodeManager
@@ -16,19 +19,19 @@ export class GameEngine implements IGameEngine {
   private onContractFailure?: (contract: Contract) => void
 
   constructor(initialState: GameState) {
-    // Deep clone to avoid mutations
     this.state = JSON.parse(JSON.stringify(initialState))
 
-    // Initialize modules with state slices
     this.nodeManager = new NodeManager(this.state.nodes)
     this.economy = new Economy(this.state.player.credits)
     this.upgradeSystem = new UpgradeSystem(this.state.upgrades)
-    this.sentimentSystem = new SentimentSystem(this.state.player.sentiment)
+    this.sentimentSystem = new SentimentSystem(
+      this.state.player.sentiment,
+      this.state.player.consecutiveSuccesses
+    )
     this.contractSystem = new ContractSystem(this.state.contracts)
   }
 
   getState(): GameState {
-    // Merge all module states into a single game state
     const nodeState = this.nodeManager.getState()
     const economyState = this.economy.getState()
     const upgradeState = this.upgradeSystem.getState()
@@ -64,7 +67,7 @@ export class GameEngine implements IGameEngine {
     const nodes = this.nodeManager.getState().nodes
     const node = nodes.find(n => n.id === nodeId)
     if (!node) return
-    node.heat = Math.max(0, node.heat - 30)
+    node.heat = Math.max(0, node.heat - COOL_HEAT_REDUCTION)
   }
 
   purchaseUpgrade(upgradeId: string, nodeId: string): boolean {
@@ -75,14 +78,42 @@ export class GameEngine implements IGameEngine {
 
     const upgrade = this.state.upgrades.find(u => u.id === upgradeId)
     if (!upgrade) return false
+    if (!upgrade.requires.every(id => node.upgrades.includes(id))) return false
 
     if (this.economy.getState().credits < upgrade.cost) return false
 
     this.economy.subtractCredits(upgrade.cost)
     node.upgrades.push(upgradeId)
-    // Pass only the new upgrade ID — re-applying all upgrades would double-stack stats
     this.upgradeSystem.applyUpgradesToNode(node, [upgradeId])
     return true
+  }
+
+  acceptContract(contractId: string): boolean {
+    return this.contractSystem.acceptContract(contractId)
+  }
+
+  completeContract(contractId: string): boolean {
+    const contract = this.contractSystem.getState().contracts.find(c => c.id === contractId)
+    if (!contract) return false
+    const success = this.contractSystem.completeContract(contractId)
+    if (success) {
+      this.economy.addCredits(contract.reward)
+      this.sentimentSystem.recordSuccess(contract.repReward)
+      this.state = this.getState()
+    }
+    return success
+  }
+
+  cancelContract(contractId: string): boolean {
+    const contract = this.contractSystem.getState().contracts.find(c => c.id === contractId)
+    if (!contract) return false
+    const success = this.contractSystem.cancelContract(contractId)
+    if (success) {
+      this.economy.applyPenalty(Math.ceil(contract.penalty * 0.25))
+      this.sentimentSystem.recordFailure(Math.ceil(contract.repPenalty * 0.5))
+      this.state = this.getState()
+    }
+    return success
   }
 
   tick(): void {
@@ -94,60 +125,52 @@ export class GameEngine implements IGameEngine {
     // Step 2: Generate packets from all nodes
     let totalPackets = 0
     for (const node of updatedNodes) {
-      const packetsGenerated = this.nodeManager.generatePackets(node)
-      totalPackets += packetsGenerated
+      totalPackets += this.nodeManager.generatePackets(node)
     }
-
-    // Track total packets processed
     this.state.player.totalPacketsProcessed += totalPackets
 
-    // Step 3: Route packets to contracts
-    const contractsBefore = JSON.parse(JSON.stringify(this.state.contracts))
+    // Step 3: Route packets, expire offers, enforce deadlines
+    const contractsBefore = JSON.parse(JSON.stringify(this.contractSystem.getState().contracts))
     this.contractSystem.tick(totalPackets)
     const contractsAfter = this.contractSystem.getState().contracts
 
-    // Step 4: Process contract events (success/failure) for contracts that existed before tick
-    // Note: Contract events are detected for contracts that existed before this tick.
-    // Newly generated contracts (added at the end of this tick) will fire events on the next tick.
-    for (let i = 0; i < contractsBefore.length; i++) {
-      const before = contractsBefore[i]
+    // Step 4: Emit events for contracts that were active and just settled via deadline
+    for (const before of contractsBefore) {
+      if (before.status !== 'active') continue
       const after = contractsAfter.find(c => c.id === before.id)
+      if (!after) continue
 
-      if (!after) continue // Contract was removed (shouldn't happen, but defensive)
-
-      // Detect completion
-      if (before.status === 'active' && after.status === 'completed') {
+      if (after.status === 'completed') {
         this.economy.addCredits(after.reward)
-        this.sentimentSystem.recordSuccess()
-        if (this.onContractSuccess) {
-          this.onContractSuccess({ ...after })
-        }
+        this.sentimentSystem.recordSuccess(after.repReward)
+        if (this.onContractSuccess) this.onContractSuccess({ ...after })
       }
 
-      // Detect failure
-      if (before.status === 'active' && after.status === 'failed') {
+      if (after.status === 'failed') {
         this.economy.applyPenalty(after.penalty)
-        this.sentimentSystem.recordFailure()
-        if (this.onContractFailure) {
-          this.onContractFailure({ ...after })
-        }
+        this.sentimentSystem.recordFailure(after.repPenalty)
+        if (this.onContractFailure) this.onContractFailure({ ...after })
       }
     }
 
-    // Step 5: Generate new contracts if needed
-    const activeContracts = contractsAfter.filter(c => c.status === 'active')
-    if (activeContracts.length < 2) {
+    // Step 5: Maintain offer pool — keep 3 offers available, always at least 1 safe
+    const offeredContracts = contractsAfter.filter(c => c.status === 'offered')
+    const offeredCount = offeredContracts.length
+    if (offeredCount < OFFER_POOL_TARGET) {
       const weights = this.sentimentSystem.getContractDifficultyWeights()
-      const difficulty = Math.random() < weights.hard ? 'hard' : 'safe'
-      const newContracts = this.contractSystem.generateNewContracts(difficulty)
-      contractsAfter.push(...newContracts)
+      const hasSafeOffer = offeredContracts.some(c => c.difficulty === 'safe')
+      const toGenerate = OFFER_POOL_TARGET - offeredCount
+      for (let i = 0; i < toGenerate; i++) {
+        const forcesSafe = i === 0 && !hasSafeOffer
+        const difficulty = forcesSafe ? 'safe' : (Math.random() < weights.hard ? 'hard' : 'safe')
+        this.contractSystem.generateNewOffers(difficulty, 1)
+      }
     }
 
     // Step 6: Settle passive packet revenue
     this.economy.settleRevenue(totalPackets)
 
-    // Step 7: Update internal state
-    const fullState = this.getState()
-    this.state = fullState
+    // Step 7: Update internal state snapshot
+    this.state = this.getState()
   }
 }

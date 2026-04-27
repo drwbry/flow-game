@@ -1,5 +1,4 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
 import { Node } from '@/lib/engine/types'
 import { asciiBar } from '@/lib/asciiBar'
 import { effectiveThroughput } from '@/lib/engine/nodeManager'
@@ -10,34 +9,8 @@ interface NodeCardProps {
 }
 
 export function NodeCard({ node, onCool }: NodeCardProps) {
-  const [cooldownRemaining, setCooldownRemaining] = useState(0)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [])
-
-  function handleCool() {
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    onCool()
-    setCooldownRemaining(5000)
-    intervalRef.current = setInterval(() => {
-      setCooldownRemaining(prev => {
-        if (prev <= 100) {
-          clearInterval(intervalRef.current!)
-          intervalRef.current = null
-          return 0
-        }
-        return prev - 100
-      })
-    }, 100)
-  }
-
   const effective = Math.round(effectiveThroughput(node))
   const cardBorder = node.status === 'critical' ? 'border-red-400' : 'border-green-400'
-  const isOnCooldown = cooldownRemaining > 0
 
   return (
     <div className={`border ${cardBorder} p-4 font-mono text-sm`}>
@@ -49,26 +22,17 @@ export function NodeCard({ node, onCool }: NodeCardProps) {
         }
       </div>
       <div className="mb-1 text-green-400">
-        THROUGHPUT {asciiBar(effective, node.throughput)} {effective} pps
+        THROUGHPUT {asciiBar(effective, node.throughput)} {effective} / {node.throughput} pps
       </div>
       <div className="mb-3 text-amber-400">
         HEAT {asciiBar(node.heat, 100)} {node.heat}°
       </div>
-      {isOnCooldown ? (
-        <button
-          disabled
-          className="border border-gray-600 px-3 py-1 text-gray-600 cursor-not-allowed"
-        >
-          [ COOL ] {asciiBar(cooldownRemaining, 5000)}
-        </button>
-      ) : (
-        <button
-          onClick={handleCool}
-          className="border border-green-400 px-3 py-1 text-green-400 hover:bg-green-400 hover:text-black"
-        >
-          [ COOL ]
-        </button>
-      )}
+      <button
+        onClick={onCool}
+        className="border border-green-400 px-3 py-1 text-green-400 hover:bg-green-400 hover:text-black"
+      >
+        [ COOL ]
+      </button>
     </div>
   )
 }

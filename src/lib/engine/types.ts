@@ -4,6 +4,7 @@ export interface Node {
   throughput: number // base packets/second, 100x scale
   heat: number // 0–100
   efficiency: number // 0.0–1.0
+  heatRateModifier: number // multiplier on heat generation; throughput upgrades raise it, cooling upgrades lower it
   status: 'online' | 'critical'
   upgrades: string[] // upgrade IDs
   lastMeltdownTime: number | null
@@ -14,10 +15,13 @@ export interface Contract {
   id: string
   targetVolume: number // 100x scale
   currentVolume: number
-  deadline: number // timestamp (ms)
+  deadline: number        // set on acceptance (not on offer generation)
+  offerExpiry?: number    // timestamp when offer disappears if not accepted (offered status only)
   reward: number // credits
   penalty: number // credits
-  status: 'active' | 'completed' | 'failed'
+  repReward: number    // sentiment gained on completion or manual complete
+  repPenalty: number   // sentiment lost on failure; cancel applies half this
+  status: 'offered' | 'active' | 'completed' | 'failed'
   difficulty: 'safe' | 'hard'
 }
 
@@ -26,9 +30,12 @@ export interface Upgrade {
   id: string
   name: string
   cost: number
+  tier: number        // 1 = always visible; 2+ = visible only after requires[] are purchased
+  requires: string[]  // upgrade IDs that must be owned before this appears in the shop
   effects: {
     throughput?: number
     efficiency?: number
+    heatRateModifier?: number
   }
 }
 
@@ -73,15 +80,18 @@ export interface IUpgradeSystem {
 
 export interface ISentimentSystem {
   getState(): { sentiment: number; consecutiveSuccesses: number }
-  recordSuccess(): void
-  recordFailure(): void
+  recordSuccess(amount?: number): void
+  recordFailure(amount?: number): void
   getContractDifficultyWeights(): { safe: number; hard: number }
 }
 
 export interface IContractSystem {
   getState(): { contracts: Contract[] }
   tick(packetsAvailable: number): void
-  generateNewContracts(difficulty: 'safe' | 'hard'): Contract[]
+  generateNewOffers(difficulty: 'safe' | 'hard', count: number): void
+  acceptContract(contractId: string): boolean
+  completeContract(contractId: string): boolean
+  cancelContract(contractId: string): boolean
 }
 
 export interface IGameEngine {
@@ -89,4 +99,7 @@ export interface IGameEngine {
   tick(): void
   coolNode(nodeId: string): void
   purchaseUpgrade(upgradeId: string, nodeId: string): boolean
+  acceptContract(contractId: string): boolean
+  completeContract(contractId: string): boolean
+  cancelContract(contractId: string): boolean
 }

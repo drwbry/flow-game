@@ -4,9 +4,9 @@ export class SentimentSystem implements ISentimentSystem {
   private sentiment: number
   private consecutiveSuccesses: number
 
-  constructor(initialSentiment: number = 50) {
+  constructor(initialSentiment: number = 50, initialConsecutiveSuccesses: number = 0) {
     this.sentiment = initialSentiment
-    this.consecutiveSuccesses = 0
+    this.consecutiveSuccesses = initialConsecutiveSuccesses
   }
 
   getState() {
@@ -16,18 +16,15 @@ export class SentimentSystem implements ISentimentSystem {
     }
   }
 
-  recordSuccess(): void {
+  recordSuccess(amount: number = 5): void {
     const streakBonus = Math.min(this.consecutiveSuccesses, 3) // 0 on first call
-    const sentimentGain = 5 + streakBonus   // first call: 5+0=5
+    const sentimentGain = amount + streakBonus
     this.sentiment = Math.min(100, this.sentiment + sentimentGain)
     this.consecutiveSuccesses += 1           // increment after
   }
 
-  recordFailure(): void {
-    this.sentiment -= 15
-    if (this.sentiment < 0) {
-      this.sentiment = 0
-    }
+  recordFailure(amount: number = 15): void {
+    this.sentiment = Math.max(0, this.sentiment - amount)
     this.consecutiveSuccesses = 0
   }
 

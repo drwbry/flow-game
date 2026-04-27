@@ -12,6 +12,8 @@ describe('UpgradeSystem', () => {
         id: 'upgrade1',
         name: 'Boost Throughput',
         cost: 50,
+        tier: 1,
+        requires: [],
         effects: {
           throughput: 50,
         },
@@ -20,6 +22,8 @@ describe('UpgradeSystem', () => {
         id: 'upgrade2',
         name: 'Improve Efficiency',
         cost: 75,
+        tier: 1,
+        requires: [],
         effects: {
           efficiency: 0.1,
         },
@@ -28,6 +32,8 @@ describe('UpgradeSystem', () => {
         id: 'upgrade3',
         name: 'Cooling Module',
         cost: 100,
+        tier: 1,
+        requires: [],
         effects: {
           efficiency: 0.1,
         },
@@ -36,6 +42,8 @@ describe('UpgradeSystem', () => {
         id: 'upgrade4',
         name: 'Multi-effect Upgrade',
         cost: 150,
+        tier: 1,
+        requires: [],
         effects: {
           throughput: 30,
           efficiency: 0.05,
