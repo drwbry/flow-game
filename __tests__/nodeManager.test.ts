@@ -10,6 +10,7 @@ describe('NodeManager', () => {
       throughput: 200,
       heat: 0,
       efficiency: 0.0,
+      heatRateModifier: 1.0,
       status: 'online',
       upgrades: [],
       lastMeltdownTime: null,
@@ -22,11 +23,11 @@ describe('NodeManager', () => {
       const nodes = nodeManager.getState().nodes
       const initialHeat = nodes[0].heat
 
-      // throughput 200, K=0.1, efficiency 0.0, no cooling → heat_delta = 200 * 0.1 - 0 = 20
+      // throughput 200, K=0.05, efficiency 0.0, no cooling → heat_delta = 200 * 0.05 - 0 = 10
       nodeManager.tick(nodes)
 
       const newHeat = nodeManager.getState().nodes[0].heat
-      expect(newHeat).toBe(initialHeat + 20)
+      expect(newHeat).toBe(initialHeat + 10)
     })
 
     it('should cap heat at 100', () => {
@@ -41,7 +42,7 @@ describe('NodeManager', () => {
     it('should not go below 0', () => {
       let nodes = nodeManager.getState().nodes
       nodes[0].heat = 5
-      // With 80% cooling cap: coolingCapacity = min(1.0*50, 20*0.8) = 16, heatDelta = 4, newHeat = 9 ≥ 0
+      // K=0.05: maxHeatGen = 200*0.05 = 10, coolingCapacity = min(1.0*50, 10*0.8) = 8, heatDelta = 2, newHeat = 7 ≥ 0
       nodes[0].efficiency = 1.0
       nodeManager.tick(nodes)
 
@@ -56,8 +57,8 @@ describe('NodeManager', () => {
       nodeManager.tick(nodes)
 
       nodes = nodeManager.getState().nodes
-      // Without cap: heatDelta = 200*0.1 - 1.0*50 = -30 → clamped to 0 (heat stays 0)
-      // With 80% cap: coolingCapacity = min(50, 20*0.8=16) → heatDelta = 4 → heat = 4
+      // K=0.05: maxHeatGen = 10, without cap cooling = 50 → would go negative
+      // With 80% cap: coolingCapacity = min(50, 10*0.8=8) → heatDelta = 2 → heat = 2
       expect(nodes[0].heat).toBeGreaterThan(0)
     })
 
@@ -72,7 +73,7 @@ describe('NodeManager', () => {
 
     it('should mark node online when heat < 80', () => {
       let nodes = nodeManager.getState().nodes
-      // heat=50, efficiency=0.0, heatDelta=20, newHeat=70 → online
+      // heat=50, efficiency=0.0, K=0.05, heatDelta=10, newHeat=60 → online
       nodes[0].heat = 50
       nodeManager.tick(nodes)
 

@@ -153,12 +153,18 @@ export class GameEngine implements IGameEngine {
       }
     }
 
-    // Step 5: Maintain offer pool — keep 3 offers available at all times
-    const offeredCount = contractsAfter.filter(c => c.status === 'offered').length
+    // Step 5: Maintain offer pool — keep 3 offers available, always at least 1 safe
+    const offeredContracts = contractsAfter.filter(c => c.status === 'offered')
+    const offeredCount = offeredContracts.length
     if (offeredCount < OFFER_POOL_TARGET) {
       const weights = this.sentimentSystem.getContractDifficultyWeights()
-      const difficulty = Math.random() < weights.hard ? 'hard' : 'safe'
-      this.contractSystem.generateNewOffers(difficulty, OFFER_POOL_TARGET - offeredCount)
+      const hasSafeOffer = offeredContracts.some(c => c.difficulty === 'safe')
+      const toGenerate = OFFER_POOL_TARGET - offeredCount
+      for (let i = 0; i < toGenerate; i++) {
+        const forcesSafe = i === 0 && !hasSafeOffer
+        const difficulty = forcesSafe ? 'safe' : (Math.random() < weights.hard ? 'hard' : 'safe')
+        this.contractSystem.generateNewOffers(difficulty, 1)
+      }
     }
 
     // Step 6: Settle passive packet revenue

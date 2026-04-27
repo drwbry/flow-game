@@ -1,6 +1,6 @@
 import { Node, INodeManager } from './types'
 
-const HEAT_RATE_K = 0.1 // packets * K = heat per tick
+const HEAT_RATE_K = 0.05 // packets * K = heat per tick
 const HEAT_CAP = 100
 const HEAT_CRITICAL_THRESHOLD = 80
 const MINIMUM_THROUGHPUT_FLOOR = 25
@@ -24,7 +24,7 @@ export class NodeManager implements INodeManager {
 
   tick(nodes: Node[]): void {
     this.nodes = nodes.map(node => {
-      const maxHeatGeneration = node.throughput * HEAT_RATE_K
+      const maxHeatGeneration = node.throughput * HEAT_RATE_K * (node.heatRateModifier ?? 1.0)
       const rawCoolingCapacity = node.efficiency * MAX_COOLING_CAPACITY // efficiency: 0.0–1.0
       // Cap cooling at 80% so heat always increases slightly even at max efficiency
       const coolingCapacity = Math.min(rawCoolingCapacity, maxHeatGeneration * MAX_COOLING_FRACTION)

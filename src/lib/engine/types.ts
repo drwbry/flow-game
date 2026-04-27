@@ -4,6 +4,7 @@ export interface Node {
   throughput: number // base packets/second, 100x scale
   heat: number // 0–100
   efficiency: number // 0.0–1.0
+  heatRateModifier: number // multiplier on heat generation; throughput upgrades raise it, cooling upgrades lower it
   status: 'online' | 'critical'
   upgrades: string[] // upgrade IDs
   lastMeltdownTime: number | null
@@ -34,6 +35,7 @@ export interface Upgrade {
   effects: {
     throughput?: number
     efficiency?: number
+    heatRateModifier?: number
   }
 }
 
