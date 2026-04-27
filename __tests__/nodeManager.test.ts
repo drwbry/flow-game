@@ -96,11 +96,11 @@ describe('NodeManager', () => {
       expect(effective).toBe(100)
     })
 
-    it('should enforce minimum floor of 100 at heat 100', () => {
+    it('should enforce minimum floor of 25 at heat 100', () => {
       const nodes = nodeManager.getState().nodes
       nodes[0].heat = 100
       const effective = nodeManager.getEffectiveThroughput(nodes[0])
-      expect(effective).toBe(100) // floor
+      expect(effective).toBe(25) // floor
     })
 
     it('should handle nodes with higher base throughput', () => {
@@ -124,7 +124,7 @@ describe('NodeManager', () => {
       const nodes = nodeManager.getState().nodes
       nodes[0].heat = 100
       const packets = nodeManager.generatePackets(nodes[0])
-      expect(packets).toBe(100) // floor
+      expect(packets).toBe(25) // floor
     })
   })
 })

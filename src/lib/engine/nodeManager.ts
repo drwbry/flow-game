@@ -3,7 +3,7 @@ import { Node, INodeManager } from './types'
 const HEAT_RATE_K = 0.1 // packets * K = heat per tick
 const HEAT_CAP = 100
 const HEAT_CRITICAL_THRESHOLD = 80
-const MINIMUM_THROUGHPUT_FLOOR = 100
+const MINIMUM_THROUGHPUT_FLOOR = 25
 const MAX_COOLING_FRACTION = 0.8 // cooling can cancel at most 80% of heat generated per tick
 const MAX_COOLING_CAPACITY = 50 // max cooling units per tick at efficiency 1.0
 
